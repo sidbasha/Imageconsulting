@@ -1,0 +1,32 @@
+# Local development. No paid services. Redis is included for the Celery
+# workers that arrive with the AI milestone; the API does not use it yet.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ic
+      POSTGRES_PASSWORD: ic
+      POSTGRES_DB: ic_dev
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ic -d ic_dev"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  api:
+    build: ./backend
+    env_file: ./backend/.env.example
+    environment:
+      IC_DATABASE_URL: postgresql+psycopg://ic:ic@db:5432/ic_dev
+    ports: ["8000:8000"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

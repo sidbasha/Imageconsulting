@@ -1,0 +1,16 @@
+{
+  "not_authenticated": "You need to sign in.",
+  "invalid_credentials": "The email or password is incorrect.",
+  "invalid_token": "Your session is no longer valid. Please sign in again.",
+  "account_inactive": "This account is not active.",
+  "permission_denied": "You do not have permission to do this.",
+  "email_exists": "This email is already registered.",
+  "not_found": "The item was not found.",
+  "feature_not_available": "This feature is not available.",
+  "dependency_violation": "This release cannot be applied because an enabled feature depends on a disabled one.",
+  "unknown_key": "The release refers to a phase or feature that does not exist.",
+  "no_changes": "The release would not change anything.",
+  "invalid_schedule": "The activation time must be in the future.",
+  "release_not_scheduled": "Only a scheduled release can be cancelled.",
+  "release_not_restorable": "This release was never active, so it cannot be restored."
+}
