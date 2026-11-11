@@ -1,0 +1,92 @@
+{
+  "app": { "name": "استشارات المظهر" },
+  "common": {
+    "loading": "جارٍ التحميل",
+    "retry": "حاولي مرة أخرى",
+    "back": "رجوع",
+    "inDevelopment": "قيد التطوير"
+  },
+  "language": {
+    "label": "اللغة",
+    "en": "English",
+    "ar": "العربية"
+  },
+  "auth": {
+    "signInTitle": "مرحباً بعودتك",
+    "signInSubtitle": "سجّلي الدخول للمتابعة",
+    "registerTitle": "أنشئي حسابك",
+    "registerSubtitle": "ابدئي بملف أسلوبك الشخصي",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "fullName": "الاسم الكامل",
+    "passwordHint": "10 أحرف على الأقل",
+    "signIn": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "noAccount": "جديدة هنا؟ أنشئي حساباً",
+    "haveAccount": "لديك حساب؟ سجّلي الدخول",
+    "signOut": "تسجيل الخروج"
+  },
+  "validation": {
+    "emailRequired": "أدخلي بريدك الإلكتروني.",
+    "emailInvalid": "أدخلي بريداً إلكترونياً صحيحاً.",
+    "passwordRequired": "أدخلي كلمة المرور.",
+    "passwordShort": "استخدمي 10 أحرف على الأقل.",
+    "nameRequired": "أدخلي اسمك."
+  },
+  "errors": {
+    "network_error": "تعذّر الاتصال بالخادم. تحققي من اتصالك وحاولي مرة أخرى.",
+    "validation_error": "يرجى التحقق من البيانات المدخلة.",
+    "unexpected_error": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    "sessionExpired": "انتهت جلستك. يرجى تسجيل الدخول مرة أخرى."
+  },
+  "home": {
+    "greeting": "مرحباً، {{name}}",
+    "subtitle": "خدماتك",
+    "empty": "لا توجد خدمات متاحة حالياً.",
+    "settings": "الإعدادات"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "account": "الحساب"
+  },
+  "groups": {
+    "assessment": "اكتشفي أسلوبك",
+    "recommendations": "التوصيات",
+    "experts": "استعيني بخبيرة مظهر",
+    "library": "الأدلة والتقارير",
+    "shop": "المتجر والعروض",
+    "account": "العضوية والمكافآت"
+  },
+  "entries": {
+    "onboardingQuiz": "اختبار الأسلوب",
+    "styleAssessment": "تقييم الأسلوب الشخصي",
+    "photoAssessment": "التقييم بالصور",
+    "faceShape": "شكل الوجه",
+    "bodyShape": "شكل الجسم",
+    "seasonalColor": "لوحة الألوان الموسمية",
+    "outfits": "توصيات الأزياء",
+    "tryOn": "تجربة الأزياء افتراضياً",
+    "hair": "معاينة تسريحات الشعر",
+    "eyewear": "توصيات النظارات",
+    "shopping": "تسوّقي الإطلالة",
+    "makeupPreview": "معاينة الحواجب والشفاه",
+    "findStylist": "ابحثي عن خبيرة مظهر",
+    "bookings": "حجوزاتي",
+    "consultations": "الاستشارات",
+    "messages": "الرسائل",
+    "occasionAudit": "تقييم إطلالة المناسبات",
+    "wardrobeAudit": "تقييم خزانة الملابس",
+    "makeupAudit": "تقييم المكياج",
+    "expertColor": "تحليل الألوان مع خبيرة",
+    "personalShopper": "متسوّقة شخصية ليوم كامل",
+    "nearbyStylists": "خبيرات بالقرب منك",
+    "guides": "أدلة الأسلوب",
+    "reports": "تقاريري",
+    "shop": "المتجر",
+    "offers": "عروض بالقرب منك",
+    "vouchers": "قسائمي",
+    "subscription": "العضوية",
+    "rewards": "نقاط المكافآت",
+    "redeem": "استبدال النقاط"
+  }
+}

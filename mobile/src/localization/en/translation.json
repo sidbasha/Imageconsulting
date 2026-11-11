@@ -1,0 +1,92 @@
+{
+  "app": { "name": "Image Consulting" },
+  "common": {
+    "loading": "Loading",
+    "retry": "Try again",
+    "back": "Back",
+    "inDevelopment": "In development"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "ar": "العربية"
+  },
+  "auth": {
+    "signInTitle": "Welcome back",
+    "signInSubtitle": "Sign in to continue",
+    "registerTitle": "Create your account",
+    "registerSubtitle": "Start with your personal style profile",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full name",
+    "passwordHint": "At least 10 characters",
+    "signIn": "Sign in",
+    "register": "Create account",
+    "noAccount": "New here? Create an account",
+    "haveAccount": "Already have an account? Sign in",
+    "signOut": "Sign out"
+  },
+  "validation": {
+    "emailRequired": "Enter your email address.",
+    "emailInvalid": "Enter a valid email address.",
+    "passwordRequired": "Enter your password.",
+    "passwordShort": "Use at least 10 characters.",
+    "nameRequired": "Enter your name."
+  },
+  "errors": {
+    "network_error": "Could not reach the server. Check your connection and try again.",
+    "validation_error": "Please check the details you entered.",
+    "unexpected_error": "Something went wrong. Please try again.",
+    "sessionExpired": "Your session has ended. Please sign in again."
+  },
+  "home": {
+    "greeting": "Hello, {{name}}",
+    "subtitle": "Your services",
+    "empty": "No services are available yet.",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "account": "Account"
+  },
+  "groups": {
+    "assessment": "Discover your style",
+    "recommendations": "Recommendations",
+    "experts": "Work with a stylist",
+    "library": "Guides and reports",
+    "shop": "Shop and offers",
+    "account": "Membership and rewards"
+  },
+  "entries": {
+    "onboardingQuiz": "Style quiz",
+    "styleAssessment": "Personal style assessment",
+    "photoAssessment": "Photo assessment",
+    "faceShape": "Face shape",
+    "bodyShape": "Body shape",
+    "seasonalColor": "Seasonal colour palette",
+    "outfits": "Outfit recommendations",
+    "tryOn": "Virtual outfit try-on",
+    "hair": "Hair makeover preview",
+    "eyewear": "Eyewear recommendations",
+    "shopping": "Shop the look",
+    "makeupPreview": "Brow and lip preview",
+    "findStylist": "Find a stylist",
+    "bookings": "My bookings",
+    "consultations": "Consultations",
+    "messages": "Messages",
+    "occasionAudit": "Occasion style audit",
+    "wardrobeAudit": "Wardrobe audit",
+    "makeupAudit": "Makeup audit",
+    "expertColor": "Expert colour analysis",
+    "personalShopper": "Personal shopper for a day",
+    "nearbyStylists": "Stylists near you",
+    "guides": "Style guides",
+    "reports": "My reports",
+    "shop": "Shop",
+    "offers": "Offers near you",
+    "vouchers": "My vouchers",
+    "subscription": "Membership",
+    "rewards": "Reward points",
+    "redeem": "Redeem points"
+  }
+}

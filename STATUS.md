@@ -1,6 +1,6 @@
 # Development status
 
-Last updated: 12 Nov 2026, end of Milestone 1.
+Last updated: 12 Nov 2026, after the mobile foundation (part of Milestone 6, brought forward).
 
 The product described in the master prompt is a multi-month build for a team. This file is
 the honest ledger: nothing is listed as complete unless it exists and its tests pass.
@@ -15,7 +15,7 @@ the honest ledger: nothing is listed as complete unless it exists and its tests 
 | 3 | Assessments: onboarding quiz, style assessment, image upload, private storage, quality gate | Not started |
 | 4 | AI analysis: face shape, body shape, colour; Celery workers; model registry; evaluation harness | Not started |
 | 5 | Recommendations, reports with EN/AR PDF, digital guides, entitlements, subscriptions and payment adapter, retail links, loyalty points | Not started |
-| 6 | Mobile app for Phase 1 (EN/AR, RTL) and admin panel core with the Phase Management screen | Not started |
+| 6 | Mobile app for Phase 1 (EN/AR, RTL) and admin panel core with the Phase Management screen | Partly done: mobile foundation built (see below). Feature screens and the whole admin panel not started |
 | 7 | Phase 2 marketplace: stylist onboarding, credentials, verification, discovery, booking, service payments, consultations, audits, expert reports | Not started |
 | 8 | Phase 2 safeguards and tools: messaging, contact detection, blocking, violations, colour workspace, draping, metering, redemption, testimonials, paid promotion | Not started |
 | 9 | Mobile and admin screens for Phase 2 | Not started |
@@ -61,6 +61,31 @@ Mandatory release test cases (master prompt section 16):
 - Docker image and Compose file are written but were not built or run in this environment. The app, migration and tests were run directly.
 - Arabic strings were written without native review.
 - Dependencies between features are engineering proposals except row 23 -> row 9 (from the Excel) and three that follow MoM decisions.
+
+## Mobile foundation report
+
+**Completed**
+
+- Bare React Native 0.88 project in `mobile/` with `android/` and `ios/` folders from the official template, bundle id `com.imageconsulting`.
+- Screens: sign in, create account, home, settings. Tokens in Keychain/Keystore with automatic single-flight refresh.
+- English and Arabic with immediate direction switch, saved to the profile. No literal text in components.
+- Home built from the enabled features reported by the API; refreshes on return to foreground and on pull.
+- `scripts/e2e.sh`: starts the API on a scratch database and runs the app's client against it.
+
+**Tests**: 24 unit and whole-app tests passed; 10 end-to-end tests passed against the live API and PostgreSQL 16 (register, Phase 1 only, Arabic errors, language saved, token renewal, release Phase 2, rollback, access control, sign out). Type-check and lint clean. Release JavaScript bundles build for both platforms. Mutation-checked: removing feature filtering fails 3 tests, removing RTL handling fails 2.
+
+**Not verified**
+
+- The native Android and iOS builds were NOT compiled or run. This environment has no Android SDK, no Xcode, and cannot download Gradle. `npm run android` / `npm run ios` have never been executed for this project. The native folders are the unmodified official template plus one manifest change (`supportsRtl="false"`); three native libraries are autolinked (keychain, screens, safe-area-context).
+- No test has run on a device or simulator, so real RTL rendering, keyboard behaviour and Keychain access are untested.
+- iOS needs `pod install` on a Mac before the first build.
+
+**Known limitations**
+
+- Every service on the home screen is marked "In development" and cannot be opened.
+- Mandatory cases 7 and 8 (language switching) now pass at screen level in Jest for the four existing screens, not on devices.
+- No app icon, splash screen, push notifications, deep links or store configuration.
+- Arabic copy is unreviewed and uses the feminine form, following the women-only audience decision in the minutes.
 
 **Open before Milestone 2 can be finalised**: the client questions in section 3 of the analysis document, above all the verification method, women-only and teenage rules, and what virtual try-on means.
 

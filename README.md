@@ -8,7 +8,8 @@ See `STATUS.md` for exactly what exists today and what does not.
 ```
 backend/   FastAPI modular monolith (Python), PostgreSQL, Alembic
 docs/      Requirements Traceability Matrix and its generator
-mobile/    React Native app            (not started)
+mobile/    React Native app with android/ and ios/ (foundation; see mobile/README.md)
+scripts/   e2e.sh: API + mobile client end-to-end check
 admin/     React admin panel           (not started)
 ```
 
