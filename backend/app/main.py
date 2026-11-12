@@ -66,6 +66,19 @@ def create_app() -> FastAPI:
         v1.include_router(commerce.sandbox)
     app.include_router(v1)
 
+    vision_paths = ("/api/v1/analysis", "/api/v1/previews", "/api/v1/my-draping", "/api/v1/workspace", "/api/v1/tryon",
+                    "/api/v1/admin/tryon-items", "/api/v1/assessment-images")
+
+    @app.middleware("http")
+    async def give_back_image_memory(request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith(vision_paths):
+            from app.modules.ai_analysis import engine
+
+            if engine.low_memory():
+                engine.trim_memory()
+        return response
+
     @app.get("/health", tags=["system"])
     def health() -> dict:
         return {"status": "ok"}

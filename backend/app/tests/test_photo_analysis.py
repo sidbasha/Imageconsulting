@@ -387,3 +387,19 @@ def test_self_draping_and_my_palette_sources(client, customer, uploads):  # noqa
     assert mine["basis"] == "self_draping" and mine["key"] == s["result"]["colour_type"]["key"]
     compare = client.post(f"{API}/my-draping/compare", json={"image_id": face, "colours": mine["signature"]}, headers=headers)
     assert compare.status_code == 200
+
+
+def test_low_memory_mode_frees_the_pose_model(monkeypatch):
+    from app.config.settings import get_settings
+
+    monkeypatch.setenv("IC_VISION_LOW_MEMORY", "on")
+    get_settings.cache_clear()
+    try:
+        assert engine.low_memory()
+        engine.models.poses(engine.decode(BODY_JPEG))
+        assert engine.models._pose is None  # freed after use
+        engine.trim_memory()  # safe everywhere
+    finally:
+        monkeypatch.delenv("IC_VISION_LOW_MEMORY")
+        get_settings.cache_clear()
+    assert not engine.low_memory() or engine._memory_limit_mb() is not None

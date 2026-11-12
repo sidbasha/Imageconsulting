@@ -95,6 +95,40 @@ class Pose:
     mask: np.ndarray  # person silhouette, uint8 0/1, at the photo's size
 
 
+def _memory_limit_mb() -> float | None:
+    """The container's memory limit (cgroup v2 or v1), if there is one."""
+    for path in ("/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes"):
+        try:
+            raw = Path(path).read_text().strip()
+        except OSError:
+            continue
+        if raw.isdigit() and int(raw) < 1 << 50:
+            return int(raw) / 1e6
+    return None
+
+
+def low_memory() -> bool:
+    """Small hosts (e.g. Render's free 512 MB): free rarely used models after use and give freed
+    memory back to the system after each image request. IC_VISION_LOW_MEMORY=auto|on|off."""
+    mode = get_settings().vision_low_memory
+    if mode in ("on", "off"):
+        return mode == "on"
+    limit = _memory_limit_mb()
+    return limit is not None and limit < 1024
+
+
+def trim_memory() -> None:
+    """Returns freed heap to the operating system (glibc only; elsewhere a no-op)."""
+    import ctypes
+    import gc
+
+    gc.collect()
+    try:
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except OSError:
+        pass
+
+
 class _Models:
     def __init__(self):
         self._lock = threading.Lock()
@@ -162,6 +196,10 @@ class _Models:
         h, w = rgb.shape[:2]
         with self._locks["pose"]:
             result = self._pose.detect(self._mp(rgb))
+            if low_memory():
+                # Body shape and garment try-on are occasional: do not hold ~60 MB between them.
+                self._pose.close()
+                self._pose = None
         masks = result.segmentation_masks or [None] * len(result.pose_landmarks)
         return [
             Pose(

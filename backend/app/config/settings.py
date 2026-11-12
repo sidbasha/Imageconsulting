@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     s3_secret_access_key: str = Field("", validation_alias=AliasChoices("IC_S3_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY"))
     s3_endpoint_url: str = Field("", validation_alias=AliasChoices("IC_S3_ENDPOINT_URL", "AWS_ENDPOINT_URL_S3"))
     s3_region: str = Field("", validation_alias=AliasChoices("IC_S3_REGION", "AWS_REGION"))
+    vision_low_memory: str = "auto"  # auto | on | off (see ai_analysis/engine.py low_memory)
     model_dir: str = "./var/models"  # on-device vision models, see ai_analysis/engine.py
     # Browser origins allowed to call the API, comma-separated. Empty: the apps are native, no browser client.
     cors_origins: str = ""
