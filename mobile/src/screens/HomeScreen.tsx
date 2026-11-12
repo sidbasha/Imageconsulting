@@ -112,11 +112,13 @@ export function HomeScreen() {
                     style={({ pressed }) => [styles.feature, { width: CARD_WIDTH, backgroundImage: card.gradient, boxShadow: shadows.lifted }, pressed && styles.pressed]}>
                     <Flourish />
                     <View style={styles.orbSmall} />
-                    <View style={styles.featureGlass}>
-                      <Icon name={card.icon} size={26} color={colors.onPrimary} strokeWidth={1.4} />
-                    </View>
                     <View style={styles.featureText}>
-                      <Text style={styles.featureKicker}>{t(`home.featured.${card.id}.kicker`)}</Text>
+                      <Row style={styles.featureTop}>
+                        <View style={styles.featureGlass}>
+                          <Icon name={card.icon} size={17} color={colors.onPrimary} strokeWidth={1.6} />
+                        </View>
+                        <Text style={styles.featureKicker}>{t(`home.featured.${card.id}.kicker`)}</Text>
+                      </Row>
                       <Text style={styles.featureTitle}>{t(`home.featured.${card.id}.title`)}</Text>
                       <View style={styles.featureCta}>
                         <Text style={styles.featureCtaText}>{t(`home.featured.${card.id}.cta`)} →</Text>
@@ -263,7 +265,8 @@ const styles = StyleSheet.create({
   feature: { height: 216, borderRadius: radius.xl, padding: spacing.lg, overflow: 'hidden', justifyContent: 'flex-end' },
   orbLarge: { position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(255,255,255,0.13)', top: -80, right: -60 },
   orbSmall: { position: 'absolute', width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.10)', bottom: -40, left: -30 },
-  featureGlass: { position: 'absolute', top: 18, left: 20, width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center',
+  featureTop: { gap: 8, alignItems: 'center' },
+  featureGlass: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)' },
   featureText: { gap: 6, alignItems: 'flex-start' },
   featureKicker: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '700', letterSpacing: 1.8, textTransform: 'uppercase' },
