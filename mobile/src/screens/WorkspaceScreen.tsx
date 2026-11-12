@@ -7,7 +7,7 @@ import { ApiError, type Indicative } from '../api/client';
 import { AppText, Button, Card, Chips, ErrorBanner, Palette, Row, Screen, ScreenHeader } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
-import { colors, radius, spacing } from '../theme';
+import { colors, gradients, radius, shadows, spacing } from '../theme';
 import { errorMessage } from './errorMessage';
 import { useLoad } from './useLoad';
 
@@ -32,10 +32,14 @@ export function WorkspaceScreen({ route, navigation }: Props) {
   const [failure, setFailure] = useState<unknown>(null);
   const chosenFile = file ?? faces[0]?.id ?? null;
   const draping = (features ?? []).includes('phase2.digital_draping');
+  const sessions = useLoad(() => (opened && draping ? api.drapingSessions(id) : Promise.resolve([])), [api, id, opened, draping]);
 
   useEffect(() => {
     setImage(null);
   }, [chosenFile]);
+  // Back from the studio: show the session just finished or paused.
+  const reloadSessions = sessions.reload;
+  useEffect(() => navigation.addListener('focus', () => { reloadSessions(); }), [navigation, reloadSessions]);
 
   const run = async (key: string, action: () => Promise<void>) => {
     setBusy(key);
@@ -74,6 +78,27 @@ export function WorkspaceScreen({ route, navigation }: Props) {
             {faces.length > 1 ? (
               <Chips value={chosenFile} onChange={setFile} testID="face" options={faces.map((f, i) => ({ value: f.id, label: `${i + 1}` }))} />
             ) : null}
+            {draping && chosenFile ? (
+              <View style={[styles.studio, { backgroundImage: gradients.plum }]}>
+                <AppText variant="small" style={styles.studioKicker}>{t('studio.kicker')}</AppText>
+                <AppText variant="heading" style={styles.studioTitle}>{t('studio.title')}</AppText>
+                <AppText style={styles.studioBody}>{t('studio.explain')}</AppText>
+                <Button label={t('studio.start')} testID="start-studio"
+                  onPress={() => navigation.navigate('DrapingStudio', { id, fileId: chosenFile })} />
+              </View>
+            ) : null}
+            {(sessions.data ?? []).map(s => (
+              <Card key={s.id}>
+                <Row style={styles.grid}>
+                  <View style={styles.flex}>
+                    <AppText>{s.result?.colour_type.title ?? t('studio.inProgress', { count: s.answers })}</AppText>
+                    <AppText variant="small" muted>{s.created_at.slice(0, 10)}</AppText>
+                  </View>
+                  <Button kind="link" label={s.status === 'complete' ? t('studio.open') : t('studio.resume')} testID={`session-${s.id}`}
+                    onPress={() => navigation.navigate('DrapingStudio', { id, fileId: s.file_id ?? chosenFile ?? '', sessionId: s.id })} />
+                </Row>
+              </Card>
+            ))}
             {draping ? (
               <>
                 <AppText variant="small" muted>{t('workspace.pick')}</AppText>
@@ -119,6 +144,11 @@ export function WorkspaceScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   content: { padding: spacing.lg, gap: spacing.md },
+  flex: { flex: 1 },
+  studio: { borderRadius: radius.xl, padding: spacing.lg, gap: spacing.sm, boxShadow: shadows.lifted },
+  studioKicker: { color: '#EBDDF3', letterSpacing: 1.4, textTransform: 'uppercase' },
+  studioTitle: { color: '#FFFFFF', fontSize: 24, lineHeight: 32 },
+  studioBody: { color: '#F3EAF8' },
   grid: { gap: spacing.sm, flexWrap: 'wrap' },
   swatch: { width: 40, height: 40, borderRadius: radius.md, borderWidth: 2, borderColor: colors.border },
   swatchSelected: { borderColor: colors.text, borderWidth: 3 },

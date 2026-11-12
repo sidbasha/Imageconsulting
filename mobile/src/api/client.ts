@@ -84,6 +84,7 @@ export type PhotoAnalysis = {
   scores: { key: string; title: string; score: number }[];
   swatches?: Record<string, string>;
   profile: { key: string; title: string; summary: string; palette: string[] | null; advice: Record<string, string[]> } | null;
+  colour_type?: ColourTypeSummary | null;
 };
 export type PreviewKind = 'hair-colour' | 'outfit-colour' | 'makeup';
 
@@ -154,6 +155,30 @@ export type Slot = { id: string; starts_at: string; ends_at: string; booked: boo
 export type TemplateSection = { key: string; title: string; type: 'decision' | 'text' | 'list' | 'choice' | 'palette'; options: string[]; required: boolean };
 export type ReportTemplate = { key: string; title: string; sections: TemplateSection[] };
 export type Indicative = { indicative: true; season: string; scores: Record<string, number>; swatches: Record<string, string>; notes: string[] };
+export type Swatch = { hex: string; name: string; family?: string; tone?: 'light' | 'mid' | 'deep' };
+export type ColourTypeKey =
+  | 'light_spring' | 'warm_spring' | 'bright_spring' | 'light_summer' | 'cool_summer' | 'soft_summer'
+  | 'soft_autumn' | 'warm_autumn' | 'deep_autumn' | 'deep_winter' | 'cool_winter' | 'bright_winter';
+export type ColourTypeListItem = { key: ColourTypeKey; season: string; dominant: string; title: string; signature: string[] };
+export type ColourTypeSummary = {
+  key: ColourTypeKey; season: string; dominant: string; title: string; summary: string;
+  axes: { warmth: number; depth: number; clarity: number };
+  neutrals: Swatch[]; colours: Swatch[]; lips: Swatch[]; hair: Swatch[]; metals: string[]; avoid: Swatch[];
+  avoid_type: ColourTypeKey; signature: string[];
+  scores?: { key: ColourTypeKey; title: string; score: number }[];
+};
+export type DrapingStep =
+  | { step: 'undertone' | 'depth' | 'clarity'; number: number; of: number; title: string; prompt: string;
+      pair: { index: number; a: string; b: string }; labels: { a: string; b: string }; progress: { answered: number; total: number } }
+  | { step: 'confirm'; number: number; of: number; title: string; prompt: string;
+      options: { key: ColourTypeKey; title: string; score: number; drapes: string[] }[] };
+export type DrapingSession = {
+  id: string; file_id: string | null; status: 'in_progress' | 'complete'; answers: number; created_at: string;
+  axes: { warmth: number; depth: number; clarity: number }; custom_palette: string[] | null; notes: string | null;
+  next?: DrapingStep | null;
+  result?: { colour_type: ColourTypeSummary; scores: { key: ColourTypeKey; title: string; score: number }[] };
+};
+export type DrapingAnswer = { step: DrapingStep['step']; pair?: number; pick: string };
 export type FeaturedCampaign = { id: string; status: string; starts_at: string; ends_at: string; impressions: number };
 export type Near = { lat?: number; lng?: number };
 
@@ -527,6 +552,23 @@ export function createApiClient(options: Options) {
     setVerdict: (consultationId: string, fileId: string, verdict: string, note?: string) =>
       request<unknown>('PUT', `/consultations/${consultationId}/files/${fileId}/verdict`, { body: { verdict, note } }),
     consultationFile: (consultationId: string, fileId: string) => requestImage('GET', `/consultations/${consultationId}/files/${fileId}`, undefined),
+    colourTypes: () => request<ColourTypeListItem[]>('GET', '/colour-types'),
+    colourType: (key: string) => request<ColourTypeSummary>('GET', `/colour-types/${key}`),
+    drapePair: (consultationId: string, fileId: string, a: string, b: string) =>
+      requestImage('GET', `/workspace/${consultationId}/drape-pair?file_id=${fileId}&a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`, undefined),
+    lipStudio: (consultationId: string, fileId: string, colours: string[]) =>
+      requestImage('POST', `/workspace/${consultationId}/lips`, { file_id: fileId, colours }),
+    startDraping: (consultationId: string, fileId: string) =>
+      request<DrapingSession>('POST', `/workspace/${consultationId}/draping`, { body: { file_id: fileId } }),
+    drapingSessions: (consultationId: string) => request<DrapingSession[]>('GET', `/workspace/${consultationId}/draping`),
+    drapingSession: (consultationId: string, sessionId: string) =>
+      request<DrapingSession>('GET', `/workspace/${consultationId}/draping/${sessionId}`),
+    answerDraping: (consultationId: string, sessionId: string, answer: DrapingAnswer) =>
+      request<DrapingSession>('POST', `/workspace/${consultationId}/draping/${sessionId}/answer`, { body: answer }),
+    undoDraping: (consultationId: string, sessionId: string) =>
+      request<DrapingSession>('POST', `/workspace/${consultationId}/draping/${sessionId}/undo`),
+    editDraping: (consultationId: string, sessionId: string, body: { custom_palette?: string[]; notes?: string }) =>
+      request<DrapingSession>('PATCH', `/workspace/${consultationId}/draping/${sessionId}`, { body }),
     openWorkspace: (consultationId: string) => request<{ open: boolean; credits_used: number }>('POST', `/workspace/${consultationId}/open`),
     drape: (consultationId: string, fileId: string, colour: string) =>
       requestImage('GET', `/workspace/${consultationId}/drape?file_id=${fileId}&colour=${encodeURIComponent(colour)}`, undefined),

@@ -148,7 +148,8 @@ export function createFakeServer() {
       }
       return json(200, publicUser(current));
     }
-    const route = state.routes[`${method} ${path}`];
+    // Exact match first (some routes include their query), then the path without the query.
+    const route = state.routes[`${method} ${path}`] ?? state.routes[`${method} ${path.split('?')[0]}`];
     if (route) {
       if (!current) {
         return fail(401, 'invalid_token', language);

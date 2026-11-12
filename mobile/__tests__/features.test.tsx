@@ -393,6 +393,84 @@ describe('stylist tools', () => {
     expect(compared).toEqual({ file_id: 'f1', colours: ['#1f3a93', '#a3123a'] });
   });
 
+  test('guided draping: A/B drapes, then she chooses a type and saves the client palette', async () => {
+    const { server, user } = start(FEATURES);
+    const sw = (hex: string, family = 'red', tone = 'mid') => ({ hex, name: hex, family, tone });
+    const DEEP_AUTUMN = {
+      key: 'deep_autumn', season: 'autumn', dominant: 'deep', title: 'Deep Autumn', summary: 'Deep and warm.',
+      axes: { warmth: 0.45, depth: 1, clarity: -0.2 }, neutrals: [sw('#28231d')], colours: [sw('#985248'), sw('#127171', 'teal')],
+      lips: [sw('#955442'), sw('#692a22')], hair: [sw('#3a2a20')], metals: ['gold'], avoid: [sw('#f8aaa8')], avoid_type: 'light_summer',
+      signature: ['#985248', '#127171', '#9a4f55', '#506e39'],
+    };
+    const base = { id: 's1', file_id: 'f1', created_at: '2026-11-12T00:00:00Z', custom_palette: null, notes: null, axes: { warmth: 0, depth: 0, clarity: 0 } };
+    const undertone = { step: 'undertone', number: 1, of: 4, title: 'Undertone', prompt: 'Warm or cool?',
+      pair: { index: 0, a: '#b5523a', b: '#a8465c' }, labels: { a: 'Warm', b: 'Cool' }, progress: { answered: 0, total: 5 } };
+    const confirm = { step: 'confirm', number: 4, of: 4, title: 'Your type', prompt: 'Choose.',
+      options: [{ key: 'warm_autumn', title: 'Warm Autumn', score: 0.6, drapes: ['#ae7263', '#358e89', '#b0706c', '#7a8756'] },
+        { key: 'deep_autumn', title: 'Deep Autumn', score: 0.3, drapes: DEEP_AUTUMN.signature }] };
+    const answers: any[] = [];
+    let patched: any = null;
+    let pairQuery = '';
+    await openPractice(server, {
+      'GET /consultations/c1': () => [200, CONSULTATION],
+      'POST /workspace/c1/open': () => [200, { open: true, credits_used: 1 }],
+      'GET /workspace/c1/draping': () => [200, []],
+      'POST /workspace/c1/draping': body => {
+        expect(body).toEqual({ file_id: 'f1' });
+        return [201, { ...base, status: 'in_progress', answers: 0, next: undertone }];
+      },
+      'POST /workspace/c1/draping/s1/answer': body => {
+        answers.push(body);
+        return body.step === 'confirm'
+          ? [200, { ...base, status: 'complete', answers: 12, result: { colour_type: DEEP_AUTUMN,
+            scores: [{ key: 'warm_autumn', title: 'Warm Autumn', score: 0.6 }, { key: 'deep_autumn', title: 'Deep Autumn', score: 0.3 }] } }]
+          : [200, { ...base, status: 'in_progress', answers: 11, next: confirm }];
+      },
+      'POST /workspace/c1/compare': () => [200, new Uint8Array([0xff, 0xd8])],
+      'PATCH /workspace/c1/draping/s1': body => {
+        patched = body;
+        return [200, { ...base, status: 'complete', answers: 12, custom_palette: body.custom_palette, notes: body.notes,
+          result: { colour_type: DEEP_AUTUMN, scores: [] } }];
+      },
+    });
+    const fetchImpl = server.fetchImpl;
+    server.fetchImpl = ((url: string, init: any) => {
+      if (String(url).includes('/drape-pair?')) {
+        pairQuery = String(url).split('?')[1];
+      }
+      return fetchImpl(url, init);
+    }) as typeof fetch;
+    const client = createApiClient({ baseUrl: 'http://test', tokenStore, getLanguage: () => 'en', fetchImpl: server.fetchImpl });
+    server.state.routes['GET /workspace/c1/drape-pair'] = () => [200, new Uint8Array([0xff, 0xd8])];
+    await render(<App api={client} />);
+    await signIn(user);
+    await user.press(screen.getByTestId('entry-becomeStylist'));
+    await user.press(await screen.findByTestId('open-practice'));
+    await user.press(await screen.findByTestId('workspace-b1'));
+    await user.press(await screen.findByTestId('open-workspace'));
+    await user.press(await screen.findByTestId('start-studio'));
+
+    expect(await screen.findByTestId('studio-progress')).toHaveTextContent('Step 1 of 4 · Undertone');
+    expect(await screen.findByTestId('drape-pair')).toBeOnTheScreen();
+    expect(pairQuery).toBe('file_id=f1&a=%23b5523a&b=%23a8465c');
+    await user.press(screen.getByTestId('pick-a'));
+    expect(answers[0]).toEqual({ step: 'undertone', pair: 0, pick: 'a' });
+
+    await user.press(await screen.findByTestId('show-deep_autumn'));
+    expect(await screen.findByTestId('type-drapes')).toBeOnTheScreen();
+    await user.press(screen.getByTestId('choose-deep_autumn'));
+    expect(answers[1]).toEqual({ step: 'confirm', pick: 'deep_autumn' });
+    expect(await screen.findByTestId('studio-result')).toHaveTextContent('Deep Autumn');
+    expect(screen.getByTestId('palette-title')).toHaveTextContent('Deep Autumn');
+
+    await user.press(screen.getByTestId('palette-#127171'));
+    await user.press(screen.getByTestId('palette-#985248'));
+    await user.type(screen.getByTestId('studio-notes'), 'Teal and rust.');
+    await user.press(screen.getByTestId('studio-save'));
+    expect(await screen.findByText('Saved')).toBeOnTheScreen();
+    expect(patched).toEqual({ custom_palette: ['#127171', '#985248'], notes: 'Teal and rust.' });
+  });
+
   test('featured placement: choose a length, pay, and see it waiting for review', async () => {
     const { api, server, user } = start([...FEATURES, 'phase2.service_payments']);
     const campaigns: any[] = [];

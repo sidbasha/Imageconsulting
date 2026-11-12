@@ -831,5 +831,58 @@
     "stylist_manager": "Stylist manager",
     "content_manager": "Content manager",
     "finance_manager": "Finance manager"
+  },
+  "studio": {
+    "kicker": "Professional",
+    "title": "Guided draping",
+    "explain": "Compare two drapes at a time on your client's face: undertone, depth and clarity, then choose between the closest of 12 colour types.",
+    "start": "Start a guided analysis",
+    "inProgress": "In progress · {{count}} answers",
+    "open": "Open",
+    "resume": "Resume",
+    "stepOf": "Step {{number}} of {{of}} · {{title}}",
+    "pickLeft": "{{side}} looks better",
+    "pickRight": "{{side}} looks better",
+    "same": "About the same",
+    "undo": "Undo last answer",
+    "showOnFace": "Show on face",
+    "choose": "Choose this type",
+    "result": "Colour type",
+    "customise": "Tap colours to build this client's own palette.",
+    "mine": "Client palette · {{count}} colours",
+    "notes": "Notes for the client",
+    "save": "Save palette and notes",
+    "saved": "Saved",
+    "lipStudio": "Lip studio",
+    "lipPick": "Choose 2 to 6 lip colours to compare on her face.",
+    "compareLips": "Compare lip colours",
+    "redo": "Go back and change the last answer"
+  },
+  "palette": {
+    "neutrals": "Neutrals",
+    "colours": "Colours",
+    "coloursNote": "Each column: light, medium and deep of one colour family.",
+    "lips": "Lips",
+    "hair": "Hair colour",
+    "metals": "Metals",
+    "avoid": "Wear away from the face",
+    "avoidNote": "These pull against your colouring; keep them for trousers, skirts and shoes.",
+    "metal": {
+      "gold": "Gold",
+      "bronze": "Bronze",
+      "copper": "Copper",
+      "silver": "Silver",
+      "platinum": "Platinum",
+      "white_gold": "White gold",
+      "rose_gold": "Rose gold"
+    }
+  },
+  "colourTypes": {
+    "season": {
+      "spring": "Spring",
+      "summer": "Summer",
+      "autumn": "Autumn",
+      "winter": "Winter"
+    }
   }
 }
