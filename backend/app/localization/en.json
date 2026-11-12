@@ -18,5 +18,9 @@
   "invalid_image_kind": "This photo type is not supported.",
   "unsupported_image_type": "Please upload a JPEG or PNG photo.",
   "image_too_large": "The photo is larger than 10 MB.",
-  "photo_rejected": "This photo cannot be used. Please take another one."
+  "photo_rejected": "This photo cannot be used. Please take another one.",
+  "wrong_photo_kind": "This needs a different kind of photo.",
+  "photo_not_analysable": "We could not analyse this photo. Please follow the photo tips and try again.",
+  "analysis_unavailable": "Photo analysis is temporarily unavailable.",
+  "invalid_preview_request": "Please choose a colour for the preview."
 }

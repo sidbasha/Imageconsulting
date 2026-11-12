@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
 from app.integrations.storage import Storage
+from app.modules.ai_analysis.service import latest_for_questionnaire
 from app.modules.assessments import content
 from app.modules.assessments.models import Assessment, AssessmentImage, Question, QuestionOption, Questionnaire, ResultProfile
 from app.modules.auth.models import User
@@ -158,7 +159,12 @@ def recommendations(db: Session, user: User, category: str, enabled: set[str], l
         if questionnaire is None or not questionnaire.is_active or questionnaire.feature_key not in enabled:
             continue
         assessment = latest(db, user, questionnaire)
-        profile = assessment and next((p for p in questionnaire.profiles if p.key == assessment.profile_key), None)
+        profile_key, basis = assessment and assessment.profile_key, "self_assessment"
+        # A photo analysis newer than the questionnaire answer takes its place.
+        analysed = latest_for_questionnaire(db, user, questionnaire.key)
+        if analysed and (assessment is None or analysed.created_at > assessment.created_at):
+            profile_key, basis = analysed.profile_key, "photo_analysis"
+        profile = profile_key and next((p for p in questionnaire.profiles if p.key == profile_key), None)
         if not profile:
             missing.append({"key": questionnaire.key, "title": tr(questionnaire.title, language)})
             continue
@@ -168,6 +174,7 @@ def recommendations(db: Session, user: User, category: str, enabled: set[str], l
                 {
                     "source": questionnaire.key,
                     "source_title": tr(questionnaire.title, language),
+                    "basis": basis,
                     "result": tr(profile.title, language),
                     "palette": profile.palette,
                     "items": items,

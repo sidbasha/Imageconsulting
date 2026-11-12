@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     access_token_minutes: int = 15
     refresh_token_days: int = 30
     storage_dir: str = "./var/uploads"  # local private storage; S3-compatible backend planned
+    model_dir: str = "./var/models"  # on-device vision models, see ai_analysis/engine.py
     default_language: str = "en"
     supported_languages: tuple[str, ...] = ("en", "ar")
 

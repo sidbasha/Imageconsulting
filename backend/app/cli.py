@@ -3,6 +3,7 @@
     python -m app.cli seed
     python -m app.cli create-superadmin --email you@example.com --name "Your Name"
     python -m app.cli apply-due          # run from cron/Celery beat every minute
+    python -m app.cli fetch-models       # download and verify the photo-analysis models
 """
 
 import argparse
@@ -20,10 +21,18 @@ def main() -> None:
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("seed")
     commands.add_parser("apply-due")
+    commands.add_parser("fetch-models")
     admin = commands.add_parser("create-superadmin")
     admin.add_argument("--email", required=True)
     admin.add_argument("--name", required=True)
     args = parser.parse_args()
+
+    if args.command == "fetch-models":
+        from app.modules.ai_analysis.engine import fetch_models
+
+        for path in fetch_models():
+            print(f"ok  {path}")
+        return
 
     with SessionLocal() as db:
         if args.command == "seed":
