@@ -74,6 +74,7 @@ export type AnalysisKind = 'face_shape' | 'body_shape' | 'seasonal_color';
 export type PhotoAnalysis = {
   id: string;
   kind: AnalysisKind;
+  image_id: string | null;
   basis: 'photo_analysis';
   indicative: true;
   created_at: string;
@@ -410,6 +411,7 @@ export function createApiClient(options: Options) {
     absolute: (path: string) => (path.startsWith('http') ? path : `${baseUrl}${path.startsWith('/api/') ? '' : '/api/v1'}${path}`),
 
     // ---------- photo analysis and previews ----------
+    photoFile: (id: string) => requestImage('GET', `/assessment-images/${id}/file`, undefined),
     analysePhoto: (kind: AnalysisKind, imageId: string) =>
       request<PhotoAnalysis>('POST', `/analysis/${kind}`, { body: { image_id: imageId } }),
     latestAnalysis: (kind: AnalysisKind) => request<PhotoAnalysis | null>('GET', `/analysis/${kind}`),

@@ -4,7 +4,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
 import { ApiError, type PreviewKind } from '../api/client';
-import { AppText, Bullets, Button, Chips, ErrorBanner, Row, Screen, ScreenHeader } from '../components/ui';
+import { PhotoPicker } from '../components/PhotoThumb';
+import { AppText, Bullets, Button, ErrorBanner, Row, Screen, ScreenHeader } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
 import { colors, radius, spacing } from '../theme';
@@ -72,15 +73,7 @@ export function PreviewScreen({ route, navigation }: Props) {
         {photos.data && usable.length === 0 ? (
           <Button label={t('analysis.addPhoto')} onPress={() => navigation.navigate('Photos')} testID="add-photo" />
         ) : null}
-        {usable.length > 1 ? (
-          <Chips
-            label={t('preview.photo')}
-            value={chosenPhoto}
-            onChange={setPhoto}
-            options={usable.map((p, i) => ({ value: p.id, label: `${i + 1} · ${p.created_at.slice(0, 10)}` }))}
-            testID="photo"
-          />
-        ) : null}
+        {usable.length > 0 ? <PhotoPicker photos={usable} value={chosenPhoto} onChange={setPhoto} testID="photo" /> : null}
         <AppText variant="small" muted>
           {t(kind === 'makeup' ? 'preview.lipColour' : 'preview.colour')}
         </AppText>

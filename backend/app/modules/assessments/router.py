@@ -1,13 +1,13 @@
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
-from app.core.errors import pick_language
+from app.core.errors import AppError, pick_language
 from app.database.session import get_db
 from app.integrations.storage import Storage, get_storage
 from app.modules.assessments import service
@@ -127,6 +127,22 @@ async def upload_image(
 @images.get("", response_model=list[ImageOut])
 def list_images(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[AssessmentImage]:
     return service.list_images(db, user)
+
+
+@images.get("/{image_id}/file", response_class=Response)
+def image_file(
+    image_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    storage: Storage = Depends(get_storage),
+) -> Response:
+    """The user's own photo, for thumbnails. Never cached by shared caches."""
+    image = service.own_image(db, user, image_id)
+    try:
+        data = storage.get(image.storage_key)
+    except FileNotFoundError:
+        raise AppError(404, "not_found") from None
+    return Response(data, media_type=image.content_type, headers={"Cache-Control": "private, no-store"})
 
 
 @images.delete("/{image_id}", status_code=status.HTTP_204_NO_CONTENT)

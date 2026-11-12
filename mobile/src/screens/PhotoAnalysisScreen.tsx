@@ -4,10 +4,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
 import { ApiError, type AnalysisKind, type PhotoAnalysis } from '../api/client';
-import { AppText, Bullets, Button, Card, ErrorBanner, Palette, Row, Screen, ScreenHeader } from '../components/ui';
+import { PhotoThumb } from '../components/PhotoThumb';
+import { AppText, Bullets, Button, Card, ErrorBanner, Palette, Row, Screen, ScreenHeader, Tag } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
-import { colors, spacing } from '../theme';
+import { colors, radius, spacing } from '../theme';
 import { errorMessage } from './errorMessage';
 import { useLoad } from './useLoad';
 
@@ -27,7 +28,9 @@ export function PhotoAnalysisScreen({ route, navigation }: Props) {
   const [failure, setFailure] = useState<unknown>(null);
 
   const usable = (photos.data ?? []).filter(p => p.kind === NEEDS[kind]);
+  // A fresh result wins; otherwise the last saved one, clearly labelled as earlier.
   const shown = result ?? previous.data ?? null;
+  const isPrevious = !result && !!shown;
 
   const run = async (imageId: string) => {
     setBusy(imageId);
@@ -62,14 +65,22 @@ export function PhotoAnalysisScreen({ route, navigation }: Props) {
             <Button label={t('analysis.addPhoto')} onPress={() => navigation.navigate('Photos')} testID="add-photo" />
           </View>
         ) : null}
-        {usable.map(photo => (
-          <Card key={photo.id}>
-            <Row style={styles.gap}>
-              <AppText style={styles.flex}>{`${t(`photos.kind.${photo.kind}`)} · ${photo.created_at.slice(0, 10)}`}</AppText>
-              <Button label={t('analysis.run')} onPress={() => run(photo.id)} loading={busy === photo.id} testID={`analyse-${photo.id}`} />
-            </Row>
-          </Card>
-        ))}
+        {usable.map(photo => {
+          const used = shown?.image_id === photo.id;
+          return (
+            <Card key={photo.id} style={used ? styles.used : undefined}>
+              <Row style={styles.photoRow}>
+                <PhotoThumb id={photo.id} testID={`photo-${photo.id}`} />
+                <View style={[styles.flex, styles.gap]}>
+                  <AppText>{t(`photos.kind.${photo.kind}`)}</AppText>
+                  <AppText variant="small" muted>{photo.created_at.slice(0, 10)}</AppText>
+                  {used ? <Tag label={t('analysis.analysed')} /> : null}
+                  <Button label={t('analysis.run')} onPress={() => run(photo.id)} loading={busy === photo.id} testID={`analyse-${photo.id}`} />
+                </View>
+              </Row>
+            </Card>
+          );
+        })}
 
         {reasons ? (
           <Card style={styles.problem}>
@@ -82,6 +93,16 @@ export function PhotoAnalysisScreen({ route, navigation }: Props) {
 
         {shown?.profile ? (
           <Card>
+            <AppText variant="heading" testID={isPrevious ? 'previous-result' : 'new-result'}>
+              {isPrevious ? t('analysis.previous', { date: shown.created_at.slice(0, 10) }) : t('analysis.latest')}
+            </AppText>
+            {isPrevious ? <AppText variant="small" muted>{t('analysis.previousNote')}</AppText> : null}
+            {shown.image_id ? (
+              <Row style={styles.photoRow}>
+                <PhotoThumb id={shown.image_id} style={styles.resultPhoto} />
+                <AppText variant="small" muted style={styles.flex}>{t('analysis.fromPhoto')}</AppText>
+              </Row>
+            ) : null}
             <AppText variant="small" muted testID="indicative">
               {t('analysis.indicative')}
             </AppText>
@@ -130,4 +151,7 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, gap: spacing.md },
   gap: { gap: spacing.sm },
   problem: { borderColor: colors.danger },
+  photoRow: { gap: spacing.md, alignItems: 'center' },
+  used: { borderColor: colors.primary, borderWidth: 1.5, borderRadius: radius.lg },
+  resultPhoto: { width: 56, height: 72 },
 });

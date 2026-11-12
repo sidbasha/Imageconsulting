@@ -231,11 +231,16 @@ def list_images(db: Session, user: User) -> list[AssessmentImage]:
     )
 
 
-def delete_image(db: Session, storage: Storage, user: User, image_id: uuid.UUID) -> None:
-    """The user's retention control: removes the file and marks the record."""
+def own_image(db: Session, user: User, image_id: uuid.UUID) -> AssessmentImage:
     image = db.get(AssessmentImage, image_id)
     if image is None or image.user_id != user.id or image.deleted_at is not None:
         raise AppError(404, "not_found")
+    return image
+
+
+def delete_image(db: Session, storage: Storage, user: User, image_id: uuid.UUID) -> None:
+    """The user's retention control: removes the file and marks the record."""
+    image = own_image(db, user, image_id)
     storage.delete(image.storage_key)
     image.deleted_at = datetime.now(UTC)
     db.flush()

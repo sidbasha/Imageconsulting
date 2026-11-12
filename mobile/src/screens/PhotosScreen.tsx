@@ -5,6 +5,7 @@ import { launchCamera, launchImageLibrary, type ImagePickerResponse } from 'reac
 import { useTranslation } from 'react-i18next';
 
 import { ApiError, type AnalysisKind, type PhotoKind } from '../api/client';
+import { PhotoThumb } from '../components/PhotoThumb';
 import { AppText, Bullets, Button, Card, ErrorBanner, Row, Screen, ScreenHeader } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
@@ -139,7 +140,8 @@ export function PhotosScreen({ navigation }: Props) {
         {photos && photos.length === 0 ? <AppText muted>{t('photos.none')}</AppText> : null}
         {photos?.map(photo => (
           <Card key={photo.id}>
-            <Row style={styles.gapRow}>
+            <Row style={styles.photoRow}>
+              <PhotoThumb id={photo.id} testID={`thumb-${photo.id}`} />
               <View style={styles.flex}>
                 <AppText>{t(`photos.kind.${photo.kind}`)}</AppText>
                 <AppText variant="small" muted>
@@ -191,4 +193,5 @@ const styles = StyleSheet.create({
   tick: { color: colors.onPrimary, fontSize: 14, lineHeight: 18, textAlign: 'center' },
   rejected: { borderColor: colors.danger },
   analyses: { gap: spacing.md, flexWrap: 'wrap' },
+  photoRow: { gap: spacing.md, alignItems: 'center' },
 });

@@ -301,3 +301,15 @@ def test_user_can_delete_her_photo_and_only_hers(client, customer, db, uploads, 
 def test_storage_keys_cannot_escape_the_storage_root(tmp_path):
     with pytest.raises(ValueError):
         LocalStorage(str(tmp_path)).put("../outside.txt", b"x")
+
+
+def test_user_sees_her_own_photo_only(client, customer, uploads, portrait):
+    headers = english(client)
+    data = jpeg(portrait)
+    image_id = upload(client, headers, data).json()["id"]
+    own = client.get(f"{API}/assessment-images/{image_id}/file", headers=headers)
+    assert own.status_code == 200 and own.content == data
+    assert own.headers["content-type"] == "image/jpeg" and "no-store" in own.headers["cache-control"]
+    assert client.get(f"{API}/assessment-images/{image_id}/file", headers=customer).status_code == 404
+    assert client.delete(f"{API}/assessment-images/{image_id}", headers=headers).status_code == 204
+    assert client.get(f"{API}/assessment-images/{image_id}/file", headers=headers).status_code == 404

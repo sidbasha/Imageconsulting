@@ -4,7 +4,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
 import { ApiError, type TryOnItem } from '../api/client';
-import { AppText, Bullets, Button, Chips, ErrorBanner, Row, Screen, ScreenHeader } from '../components/ui';
+import { PhotoPicker } from '../components/PhotoThumb';
+import { AppText, Bullets, Button, ErrorBanner, Row, Screen, ScreenHeader } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
 import { colors, radius, spacing } from '../theme';
@@ -58,10 +59,7 @@ export function TryOnScreen({ route, navigation }: Props) {
         {photos.data && usable.length === 0 ? (
           <Button label={t('analysis.addPhoto')} onPress={() => navigation.navigate('Photos')} testID="add-photo" />
         ) : null}
-        {usable.length > 1 ? (
-          <Chips label={t('preview.photo')} value={chosenPhoto} onChange={setPhoto} testID="photo"
-            options={usable.map((p, i) => ({ value: p.id, label: `${i + 1} · ${p.created_at.slice(0, 10)}` }))} />
-        ) : null}
+        {usable.length > 0 ? <PhotoPicker photos={usable} value={chosenPhoto} onChange={setPhoto} testID="photo" /> : null}
         {items.loading && !items.data ? <ActivityIndicator color={colors.primary} /> : null}
         {items.data && items.data.length === 0 ? <AppText muted>{t('tryOn.empty')}</AppText> : null}
         <Row style={styles.grid}>

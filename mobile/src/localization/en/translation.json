@@ -245,7 +245,12 @@
       "silhouette_unclear": "Stand against a plain background in good light.",
       "hair_not_visible": "Your hair is not visible in this photo.",
       "clothes_not_visible": "Your clothes are not visible enough."
-    }
+    },
+    "previous": "Your last result · {{date}}",
+    "previousNote": "Saved from an earlier analysis. Analyse a photo to get a new one.",
+    "latest": "New result",
+    "fromPhoto": "From this photo",
+    "analysed": "Analysed"
   },
   "preview": {
     "title": {

@@ -102,6 +102,7 @@ def describe(db: Session, analysis: PhotoAnalysis, language: str) -> dict:
     return {
         "id": analysis.id,
         "kind": analysis.kind,
+        "image_id": analysis.image_id,  # None once the photo was deleted; the result is kept
         "basis": "photo_analysis",
         # Indicative only; expert analysis is a separate, consultant-made result.
         "indicative": True,

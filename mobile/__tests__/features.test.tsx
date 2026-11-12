@@ -71,6 +71,28 @@ test('photo analysis: run on a photo, see an indicative result, or the reasons i
   expect(screen.getByTestId('swatch-#bb7550')).toBeOnTheScreen();
 });
 
+test('photo analysis: photos show as pictures, an earlier result is labelled as such', async () => {
+  const { api, server, user } = start([...PHASE1, 'phase1.seasonal_color']);
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe1]);
+  server.state.routes = {
+    'GET /assessment-images': () => [200, [FACE_PHOTO]],
+    'GET /assessment-images/p1/file': () => [200, jpeg],
+    'GET /analysis/seasonal_color': () => [200, { ...ANALYSIS, image_id: 'p1', created_at: '2026-11-10T09:00:00Z' }],
+    'POST /analysis/seasonal_color': () => [201, { ...ANALYSIS, id: 'a2', image_id: 'p1' }],
+  };
+  await render(<App api={api} />);
+  await signIn(user);
+  await user.press(screen.getByTestId('entry-photoAssessment'));
+  expect((await screen.findByTestId('thumb-p1-image')).props.source.uri).toBe(`data:image/jpeg;base64,${toBase64(jpeg)}`);
+  await user.press(await screen.findByTestId('analyse-seasonal_color-p1'));
+  expect(await screen.findByTestId('photo-p1-image')).toBeOnTheScreen();
+  expect(await screen.findByTestId('previous-result')).toHaveTextContent('Your last result · 2026-11-10');
+
+  await user.press(screen.getByTestId('analyse-p1'));
+  expect(await screen.findByTestId('new-result')).toHaveTextContent('New result');
+  expect(screen.queryByTestId('previous-result')).toBeNull();
+});
+
 test('previews come back as an image', async () => {
   const { api, server, user } = start([...PHASE1, 'phase1.hair_preview']);
   const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
