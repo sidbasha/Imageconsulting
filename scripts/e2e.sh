@@ -43,6 +43,9 @@ portrait = cv2.cvtColor(cv2.resize(data.astronaut()[0:400, 60:460], (600, 600), 
 cv2.imwrite(os.environ["E2E_PHOTO_DIR"] + "/good.jpg", portrait, [cv2.IMWRITE_JPEG_QUALITY, 92])
 cv2.imwrite(os.environ["E2E_PHOTO_DIR"] + "/blurry.jpg", cv2.GaussianBlur(portrait, (0, 0), 9))
 PY
+# Colour headshot for photo analysis (attribution in backend/app/tests/fixtures/ATTRIBUTION.md).
+cp app/tests/fixtures/face_colour.jpg "$E2E_PHOTO_DIR/colour.jpg"
+python -m app.cli fetch-models
 
 uvicorn app.main:app --port "$PORT" --log-level warning &
 API_PID=$!

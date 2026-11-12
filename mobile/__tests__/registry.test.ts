@@ -54,3 +54,7 @@ test('only enabled features are shown, and empty groups disappear', () => {
     ['experts', ['bookings']],
   ]);
 });
+
+test('every entry opens a screen', () => {
+  expect(ENTRIES.filter(e => !e.target).map(e => e.id)).toEqual([]);
+});

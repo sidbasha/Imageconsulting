@@ -54,3 +54,28 @@ def new_refresh_token() -> tuple[str, str]:
 
 def hash_refresh_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+DOWNLOAD_MINUTES = 5
+
+
+def create_download_token(user_id: uuid.UUID, resource: str, language: str) -> str:
+    """A short-lived link token for opening one document in a browser, which
+    cannot send the app's Authorization header. Typed so it is never accepted
+    as an access token, and bound to one resource."""
+    settings = get_settings()
+    now = datetime.now(UTC)
+    payload = {"sub": str(user_id), "typ": "download", "res": resource, "lang": language,
+               "iat": now, "exp": now + timedelta(minutes=DOWNLOAD_MINUTES)}
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def decode_download_token(token: str) -> tuple[uuid.UUID, str, str] | None:
+    settings = get_settings()
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        if payload.get("typ") != "download":
+            return None
+        return uuid.UUID(payload["sub"]), payload["res"], payload["lang"]
+    except (jwt.PyJWTError, KeyError, ValueError):
+        return None

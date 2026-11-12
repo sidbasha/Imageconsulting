@@ -58,10 +58,9 @@ test('sign in shows only the services enabled in the active release', async () =
   expect(screen.queryByText('Find a stylist')).toBeNull();
   expect(screen.queryByText('Work with a stylist')).toBeNull();
   expect(screen.queryByText('Shop and offers')).toBeNull();
-  // Built features can be opened; ones that are not built say so and cannot.
+  // Every service in the release now has a screen and can be opened.
   expect(screen.getByTestId('entry-styleAssessment')).toBeEnabled();
-  expect(screen.getByTestId('entry-guides')).toBeDisabled();
-  expect(screen.getByLabelText('Style guides, In development')).toBeOnTheScreen();
+  expect(screen.getByTestId('entry-guides')).toBeEnabled();
 });
 
 test('a phase released on the server appears when the app returns to the foreground', async () => {
@@ -162,11 +161,18 @@ test('register creates the account in the selected language and signs in', async
   await user.press(screen.getByTestId('submit'));
   expect(screen.getByText('استخدمي 10 أحرف على الأقل.')).toBeOnTheScreen();
 
+  // Date of birth and gender are needed for eligibility (Feature List row 2).
+  expect(screen.getByText('أدخلي تاريخ ميلادك بالصيغة YYYY-MM-DD.')).toBeOnTheScreen();
+
   await user.clear(screen.getByTestId('password'));
   await user.type(screen.getByTestId('password'), 'long-enough-password');
+  await user.type(screen.getByTestId('dob'), '1995-04-30');
+  await user.press(screen.getByTestId('gender-female'));
   await user.press(screen.getByTestId('submit'));
   expect(await screen.findByText('مرحباً، Noor')).toBeOnTheScreen();
-  expect(server.state.account('noor@example.com').preferred_language).toBe('ar');
+  const account = server.state.account('noor@example.com') as any;
+  expect(account.preferred_language).toBe('ar');
+  expect([account.date_of_birth, account.gender, account.country_code]).toEqual(['1995-04-30', 'female', 'AE']);
 });
 
 test('the session survives an app restart, and sign out ends it', async () => {

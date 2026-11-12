@@ -70,7 +70,9 @@ describe('mobile app against the live API', () => {
   });
 
   test('register in Arabic, then read the profile', async () => {
-    const user = await phone.api.register({ email, password, full_name: 'نور', preferred_language: 'ar' });
+    const user = await phone.api.register({
+      email, password, full_name: 'نور', preferred_language: 'ar', date_of_birth: '1994-03-02', gender: 'female', country_code: 'AE',
+    });
     expect(user).toMatchObject({ email, full_name: 'نور', preferred_language: 'ar', role: 'customer' });
   });
 
@@ -179,6 +181,37 @@ describe('mobile app against the live API', () => {
 
     await phone.api.deletePhoto(saved.id);
     expect(await phone.api.photos()).toEqual([]);
+  });
+
+  test('photo analysis and a preview run on the real models', async () => {
+    const photo = new Blob([new Uint8Array(fs.readFileSync(`${process.env.E2E_PHOTO_DIR}/colour.jpg`)) as any], { type: 'image/jpeg' } as any);
+    const saved = await phone.api.uploadPhoto(photo, 'face', true);
+    phone.state.language = 'ar';
+    const colour = await phone.api.analysePhoto('seasonal_color', saved.id);
+    expect(colour).toMatchObject({ basis: 'photo_analysis', indicative: true });
+    expect(['spring', 'summer', 'autumn', 'winter']).toContain(colour.profile!.key);
+    expect(colour.profile!.title).toMatch(/[\u0600-\u06FF]/); // served in Arabic
+    expect(Object.keys(colour.swatches!).sort()).toEqual(['eyes', 'hair', 'skin']);
+    const face = await phone.api.analysePhoto('face_shape', saved.id);
+    expect(face.scores.length).toBe(5);
+    // The recommendation now comes from the photo, not a questionnaire.
+    const eyewear = await phone.api.recommendations('eyewear');
+    expect(eyewear.sections[0]).toMatchObject({ basis: 'photo_analysis', result: face.profile!.title });
+    const image = await phone.api.preview('hair-colour', { image_id: saved.id, colour: '#8b2e1a' });
+    expect(image.startsWith('data:image/jpeg;base64,/9j/')).toBe(true);
+    await phone.api.deletePhoto(saved.id);
+  });
+
+  test('buy a guide through the sandbox gateway and open it from a short-lived link', async () => {
+    phone.state.language = 'en';
+    const checkout = await phone.api.buyProduct('guide.body.pear');
+    expect(checkout).toMatchObject({ status: 'pending', amount_minor: 2900, provider: 'sandbox' });
+    expect(await phone.api.downloadLink('guide.body.pear').catch(e => e)).toMatchObject({ status: 402, code: 'payment_required' });
+    expect((await phone.api.sandboxPay(checkout.payment_url!)).status).toBe('paid');
+    const { path } = await phone.api.downloadLink('guide.body.pear');
+    const pdf = await fetch(phone.api.absolute(path)); // no app token, as a browser would open it
+    expect(pdf.status).toBe(200);
+    expect(Buffer.from(await pdf.arrayBuffer()).subarray(0, 4).toString()).toBe('%PDF');
   });
 
   test('switching one feature off blocks it for the app and keeps the result for later', async () => {

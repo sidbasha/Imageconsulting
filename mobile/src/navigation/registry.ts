@@ -14,7 +14,16 @@ export type Group = 'assessment' | 'recommendations' | 'experts' | 'library' | '
 export type Target =
   | { screen: 'Assessment'; params: { key: string } }
   | { screen: 'Recommendations'; params: { category: 'outfits' | 'eyewear' | 'hair' } }
-  | { screen: 'Photos'; params?: undefined };
+  | { screen: 'PhotoAnalysis'; params: { kind: 'face_shape' | 'body_shape' | 'seasonal_color' } }
+  | { screen: 'Preview'; params: { kind: 'hair-colour' | 'outfit-colour' | 'makeup' } }
+  | { screen: 'Library'; params?: { kind: 'guide' | 'report' } }
+  | { screen: 'Plans'; params?: { audience: 'customer' | 'consultant' } }
+  | { screen: 'Offers'; params?: { show: 'offers' | 'vouchers' } }
+  | { screen: 'Stylists'; params?: { kind: string } }
+  | {
+      screen: 'Photos' | 'Retail' | 'Rewards' | 'Profile' | 'Shop' | 'Bookings' | 'Messages' | 'StylistApplication' | 'Practice';
+      params?: undefined;
+    };
 
 export type Entry = { id: string; feature: string; group: Group; target?: Target };
 
@@ -29,33 +38,37 @@ export const ENTRIES: Entry[] = [
   { id: 'seasonalColor', feature: 'phase1.seasonal_color', group: 'assessment', target: { screen: 'Assessment', params: { key: 'seasonal_color' } } },
 
   { id: 'outfits', feature: 'phase1.outfit_recommendations', group: 'recommendations', target: { screen: 'Recommendations', params: { category: 'outfits' } } },
-  { id: 'tryOn', feature: 'phase1.virtual_tryon', group: 'recommendations' },
+  { id: 'tryOn', feature: 'phase1.virtual_tryon', group: 'recommendations', target: { screen: 'Preview', params: { kind: 'outfit-colour' } } },
   { id: 'hair', feature: 'phase1.hair_preview', group: 'recommendations', target: { screen: 'Recommendations', params: { category: 'hair' } } },
+  { id: 'hairColour', feature: 'phase1.hair_preview', group: 'recommendations', target: { screen: 'Preview', params: { kind: 'hair-colour' } } },
   { id: 'eyewear', feature: 'phase1.eyewear', group: 'recommendations', target: { screen: 'Recommendations', params: { category: 'eyewear' } } },
-  { id: 'shopping', feature: 'phase1.retail_links', group: 'recommendations' },
-  { id: 'makeupPreview', feature: 'phase3.pmu_preview', group: 'recommendations' },
+  { id: 'shopping', feature: 'phase1.retail_links', group: 'recommendations', target: { screen: 'Retail' } },
+  { id: 'makeupPreview', feature: 'phase3.pmu_preview', group: 'recommendations', target: { screen: 'Preview', params: { kind: 'makeup' } } },
 
-  { id: 'findStylist', feature: 'phase2.stylist_discovery', group: 'experts' },
-  { id: 'bookings', feature: 'phase2.booking', group: 'experts' },
-  { id: 'consultations', feature: 'phase2.consultations', group: 'experts' },
-  { id: 'messages', feature: 'phase2.messaging', group: 'experts' },
-  { id: 'occasionAudit', feature: 'phase2.occasion_audit', group: 'experts' },
-  { id: 'wardrobeAudit', feature: 'phase2.wardrobe_audit', group: 'experts' },
-  { id: 'makeupAudit', feature: 'phase2.makeup_audit', group: 'experts' },
-  { id: 'expertColor', feature: 'phase2.expert_color_analysis', group: 'experts' },
-  { id: 'personalShopper', feature: 'phase3.personal_shopper', group: 'experts' },
-  { id: 'nearbyStylists', feature: 'phase3.location_discovery', group: 'experts' },
+  { id: 'findStylist', feature: 'phase2.stylist_discovery', group: 'experts', target: { screen: 'Stylists' } },
+  { id: 'bookings', feature: 'phase2.booking', group: 'experts', target: { screen: 'Bookings' } },
+  { id: 'consultations', feature: 'phase2.consultations', group: 'experts', target: { screen: 'Bookings' } },
+  { id: 'messages', feature: 'phase2.messaging', group: 'experts', target: { screen: 'Messages' } },
+  { id: 'occasionAudit', feature: 'phase2.occasion_audit', group: 'experts', target: { screen: 'Stylists', params: { kind: 'occasion_audit' } } },
+  { id: 'wardrobeAudit', feature: 'phase2.wardrobe_audit', group: 'experts', target: { screen: 'Stylists', params: { kind: 'wardrobe_audit' } } },
+  { id: 'makeupAudit', feature: 'phase2.makeup_audit', group: 'experts', target: { screen: 'Stylists', params: { kind: 'makeup_audit' } } },
+  { id: 'expertColor', feature: 'phase2.expert_color_analysis', group: 'experts', target: { screen: 'Stylists', params: { kind: 'expert_color' } } },
+  { id: 'personalShopper', feature: 'phase3.personal_shopper', group: 'experts', target: { screen: 'Stylists', params: { kind: 'personal_shopper_day' } } },
+  // Location search needs the device's position (a geolocation library, not added yet); until then this lists by city.
+  { id: 'nearbyStylists', feature: 'phase3.location_discovery', group: 'experts', target: { screen: 'Stylists' } },
 
-  { id: 'guides', feature: 'phase1.digital_guides', group: 'library' },
-  { id: 'reports', feature: 'phase1.paid_reports', group: 'library' },
+  { id: 'guides', feature: 'phase1.digital_guides', group: 'library', target: { screen: 'Library', params: { kind: 'guide' } } },
+  { id: 'reports', feature: 'phase1.paid_reports', group: 'library', target: { screen: 'Library', params: { kind: 'report' } } },
 
-  { id: 'shop', feature: 'phase3.physical_products', group: 'shop' },
-  { id: 'offers', feature: 'phase3.geo_promotions', group: 'shop' },
-  { id: 'vouchers', feature: 'phase3.vouchers', group: 'shop' },
+  { id: 'shop', feature: 'phase3.physical_products', group: 'shop', target: { screen: 'Shop' } },
+  { id: 'offers', feature: 'phase3.brand_advertising', group: 'shop', target: { screen: 'Offers', params: { show: 'offers' } } },
+  { id: 'vouchers', feature: 'phase3.vouchers', group: 'shop', target: { screen: 'Offers', params: { show: 'vouchers' } } },
 
-  { id: 'subscription', feature: 'phase1.customer_subscriptions', group: 'account' },
-  { id: 'rewards', feature: 'phase1.loyalty_points', group: 'account' },
-  { id: 'redeem', feature: 'phase2.reward_redemption', group: 'account' },
+  { id: 'profile', feature: 'phase1.eligibility_verification', group: 'account', target: { screen: 'Profile' } },
+  { id: 'subscription', feature: 'phase1.customer_subscriptions', group: 'account', target: { screen: 'Plans' } },
+  { id: 'rewards', feature: 'phase1.loyalty_points', group: 'account', target: { screen: 'Rewards' } },
+  { id: 'redeem', feature: 'phase2.reward_redemption', group: 'account', target: { screen: 'Rewards' } },
+  { id: 'becomeStylist', feature: 'phase2.stylist_onboarding', group: 'account', target: { screen: 'StylistApplication' } },
 ];
 
 export type Section = { group: Group; entries: Entry[] };

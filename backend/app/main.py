@@ -32,7 +32,7 @@ def create_app() -> FastAPI:
     v1.include_router(previews_router)
     for r in (
         users.router, users.identity, users.admin,
-        commerce.router, commerce.library, commerce.retail, commerce.admin,
+        commerce.router, commerce.library, commerce.files, commerce.retail, commerce.admin,
         rewards.router, rewards.redeem, rewards.admin,
         marketplace.application, marketplace.practice, marketplace.discovery, marketplace.bookings, marketplace.admin,
         consultations.router, consultations.workspace, consultations.admin,

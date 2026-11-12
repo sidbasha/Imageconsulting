@@ -168,6 +168,47 @@ export function ErrorBanner({ message }: { message: string | null }) {
   );
 }
 
+/** A single-choice row of pill buttons. */
+export function Chips<T extends string>({ options, value, onChange, label, testID }: {
+  options: { value: T; label: string }[];
+  value: T | null;
+  onChange: (value: T) => void;
+  label?: string;
+  testID?: string;
+}) {
+  return (
+    <View style={styles.field}>
+      {label ? (
+        <AppText variant="small" muted>
+          {label}
+        </AppText>
+      ) : null}
+      <Row style={styles.chips}>
+        {options.map(option => {
+          const selected = option.value === value;
+          return (
+            <Pressable
+              key={option.value}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              accessibilityLabel={option.label}
+              testID={`${testID ?? 'chip'}-${option.value}`}
+              onPress={() => onChange(option.value)}
+              style={[styles.chip, selected && styles.chipSelected]}>
+              <Text style={[styles.chipLabel, selected && styles.chipLabelSelected]}>{option.label}</Text>
+            </Pressable>
+          );
+        })}
+      </Row>
+    </View>
+  );
+}
+
+/** Amount in minor units shown with its currency, e.g. "AED 49.00". */
+export function money(minor: number, currency: string): string {
+  return `${currency} ${(minor / 100).toFixed(2)}`;
+}
+
 /** English / العربية. Each option is written in its own language so it can always be found. */
 export function LanguageSwitch() {
   const { language, setLanguage } = useApp();
@@ -194,6 +235,7 @@ export function LanguageSwitch() {
 }
 
 const styles = StyleSheet.create({
+  chips: { gap: spacing.sm, flexWrap: 'wrap' },
   screen: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   header: { gap: spacing.xs },

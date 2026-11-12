@@ -185,6 +185,25 @@ def report_pdf(request: Request, party=Depends(_party), db: Session = Depends(ge
                     "Content-Disposition": f'attachment; filename="report-{consultation.id}.pdf"'})
 
 
+@router.get("/{consultation_id}/report-link", dependencies=[Depends(require_feature("phase2.expert_reports"))])
+def report_link(request: Request, party=Depends(_party), user: User = Depends(get_current_user)) -> dict:
+    from app.core import security
+
+    consultation, _ = party
+    token = security.create_download_token(user.id, f"report:{consultation.id}", pick_language(request))
+    return {"path": f"/api/v1/files/{token}"}
+
+
+def report_pdf_for(db: Session, user: User, consultation_id: uuid.UUID, language: str, on: set[str]) -> tuple[str, bytes]:
+    if "phase2.expert_reports" not in on or "phase2.consultations" not in on:
+        raise AppError(404, "not_found")
+    consultation, role = service.for_party(db, user, consultation_id)
+    report = db.execute(select(ExpertReport).where(ExpertReport.consultation_id == consultation.id)).scalar_one_or_none()
+    if report is None or (role == "customer" and report.status != "delivered"):
+        raise AppError(404, "not_found")
+    return f"report-{consultation.id}.pdf", service.report_pdf(db, consultation, report, language)
+
+
 # ---------------------------------------------------------------- consultant colour workspace (27-29)
 
 workspace = APIRouter(prefix="/workspace", tags=["colour workspace"], dependencies=[Depends(require_feature("phase2.color_workspace"))])

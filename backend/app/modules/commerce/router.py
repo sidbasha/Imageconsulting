@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config.settings import get_settings
+from app.core import security
 from app.core.deps import get_current_user, get_optional_user, require_permission
 from app.core.errors import AppError, pick_language
 from app.database.session import get_db
@@ -255,6 +256,46 @@ def download(product_key: str, request: Request, on: set[str] = Depends(enabled_
         "Content-Disposition": f'attachment; filename="{filename}"', "Cache-Control": "no-store"})
 
 
+@library.get("/{product_key}/link")
+def download_link(product_key: str, request: Request, on: set[str] = Depends(enabled_features),
+                  user: User = Depends(eligible_user), db: Session = Depends(get_db)) -> dict:
+    """A five-minute link the app opens in the browser to show the PDF."""
+    product = _product(db, product_key, on)
+    if not service.has_entitlement(db, user, product.key):
+        raise AppError(402, "payment_required")
+    token = security.create_download_token(user.id, f"library:{product.key}", pick_language(request))
+    return {"path": f"/api/v1/files/{token}"}
+
+
+files = APIRouter(prefix="/files", tags=["files"])
+
+
+@files.get("/{token}")
+def open_file(token: str, on: set[str] = Depends(enabled_features), db: Session = Depends(get_db)) -> Response:
+    """Serves a document named by a download token. Entitlement and switches are checked again here."""
+    decoded = security.decode_download_token(token)
+    if decoded is None:
+        raise AppError(404, "not_found")
+    user_id, resource, language = decoded
+    user = db.get(User, user_id)
+    if user is None or not user.is_active:
+        raise AppError(404, "not_found")
+    kind, _, ref = resource.partition(":")
+    if kind == "library":
+        product = _product(db, ref, on)
+        if not service.has_entitlement(db, user, product.key):
+            raise AppError(404, "not_found")
+        filename, data = documents.render(db, user, product, language)
+    elif kind == "report":
+        from app.modules.consultations.router import report_pdf_for
+
+        filename, data = report_pdf_for(db, user, uuid.UUID(ref), language, on)
+    else:
+        raise AppError(404, "not_found")
+    return Response(data, media_type="application/pdf", headers={
+        "Content-Disposition": f'inline; filename="{filename}"', "Cache-Control": "no-store"})
+
+
 # ---------------------------------------------------------------- retail links (row 36)
 
 retail = APIRouter(prefix="/shop/retail", tags=["retail"], dependencies=[Depends(require_feature("phase1.retail_links"))])
@@ -276,6 +317,18 @@ def recommended_retail(request: Request, category: str = "outfits", user: User =
         "items": [{"id": i.id, "retailer": i.retailer, "title": tr(i.title, language), "image_url": i.image_url,
                    "price_text": i.price_text, "match": s} for s, i in scored],
     }
+
+
+@retail.post("/{item_id}/click")
+def click(item_id: uuid.UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    """Counts the click and returns the retailer link for the app to open."""
+    item = db.get(RetailItem, item_id)
+    if item is None or not item.is_active:
+        raise AppError(404, "not_found")
+    item.clicks += 1
+    db.add(RetailClick(item_id=item.id, user_id=user.id, created_at=datetime.now(UTC)))
+    db.flush()
+    return {"url": item.url}
 
 
 @retail.get("/{item_id}/go")

@@ -26,14 +26,17 @@
     "register": "Create account",
     "noAccount": "New here? Create an account",
     "haveAccount": "Already have an account? Sign in",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "eligibilityNote": "The service is open to women in the UAE. We ask so we can confirm you are eligible."
   },
   "validation": {
     "emailRequired": "Enter your email address.",
     "emailInvalid": "Enter a valid email address.",
     "passwordRequired": "Enter your password.",
     "passwordShort": "Use at least 10 characters.",
-    "nameRequired": "Enter your name."
+    "nameRequired": "Enter your name.",
+    "dateInvalid": "Enter your date of birth as YYYY-MM-DD.",
+    "genderRequired": "Please choose one."
   },
   "errors": {
     "network_error": "Could not reach the server. Check your connection and try again.",
@@ -89,7 +92,10 @@
     "vouchers": "My vouchers",
     "subscription": "Membership",
     "rewards": "Reward points",
-    "redeem": "Redeem points"
+    "redeem": "Redeem points",
+    "hairColour": "Try a hair colour",
+    "profile": "My profile",
+    "becomeStylist": "Become a stylist"
   },
   "assessment": {
     "start": "Start",
@@ -106,7 +112,9 @@
       "outfits": "Outfit advice",
       "eyewear": "Eyewear advice",
       "hair": "Hair advice"
-    }
+    },
+    "photoOption": "Prefer to use a photo? We can analyse one for an indicative result.",
+    "usePhoto": "Analyse a photo instead"
   },
   "recommendations": {
     "title": {
@@ -142,6 +150,314 @@
       "too_bright": "The photo is too bright. Avoid direct light.",
       "no_face": "No face was found. Face the camera directly.",
       "face_too_small": "Your face is too far away. Move closer."
+    },
+    "analyse": {
+      "face_shape": "Face shape",
+      "seasonal_color": "Colours",
+      "body_shape": "Body shape"
     }
+  },
+  "analysis": {
+    "title": {
+      "face_shape": "Face shape from a photo",
+      "body_shape": "Body shape from a photo",
+      "seasonal_color": "Your colours from a photo"
+    },
+    "intro": "An automated, indicative reading of your photo. A consultant's assessment can confirm it.",
+    "tips": {
+      "face": "Face the camera in daylight, no filter, hair away from your face.",
+      "full_body": "Stand facing the camera, whole body in view, arms slightly away from your sides."
+    },
+    "needPhoto": {
+      "face": "Add a face photo first.",
+      "full_body": "Add a full-length photo first."
+    },
+    "addPhoto": "Add a photo",
+    "run": "Analyse",
+    "notAnalysable": "We could not analyse this photo:",
+    "indicative": "Indicative result from photo analysis",
+    "lowConfidence": "This one was close between results. Try another photo or the questionnaire.",
+    "sampled": "Colours we measured: skin, hair, eyes",
+    "closeness": "How close each result was",
+    "advice": {
+      "outfits": "Outfits",
+      "eyewear": "Eyewear",
+      "hair": "Hair",
+      "makeup": "Makeup"
+    },
+    "reasons": {
+      "no_face": "No face was found.",
+      "multiple_faces": "More than one face is in the photo.",
+      "face_not_frontal": "Face the camera straight on.",
+      "face_too_small": "Come closer to the camera.",
+      "face_badly_lit": "Your face is too dark or too bright. Use soft daylight.",
+      "not_a_colour_photo": "Use a colour photo without filters.",
+      "no_person": "No person was found.",
+      "multiple_people": "Only one person should be in the photo.",
+      "body_not_fully_visible": "Your whole body, down to the knees at least, must be visible.",
+      "body_not_frontal": "Stand facing the camera.",
+      "body_not_upright": "Stand upright.",
+      "arms_not_down": "Let your arms hang down, not on your hips.",
+      "arms_touching_body": "Hold your arms slightly away from your sides.",
+      "silhouette_unclear": "Stand against a plain background in good light.",
+      "hair_not_visible": "Your hair is not visible in this photo.",
+      "clothes_not_visible": "Your clothes are not visible enough."
+    }
+  },
+  "preview": {
+    "title": {
+      "hair-colour": "Try a hair colour",
+      "outfit-colour": "Try outfit colours",
+      "makeup": "Permanent-makeup preview"
+    },
+    "intro": {
+      "hair-colour": "See a new hair colour on your own photo.",
+      "outfit-colour": "See your outfit in recommended colours.",
+      "makeup": "Preview lip and brow colours."
+    },
+    "disclaimer": {
+      "hair-colour": "Colour only. A new cut or style is not shown.",
+      "outfit-colour": "Your own clothes in a new colour, not a different garment.",
+      "makeup": "A simulation; real results depend on the artist and your skin."
+    },
+    "photo": "Photo",
+    "colour": "Colour",
+    "lipColour": "Lip colour",
+    "browColour": "Brow colour",
+    "show": "Show preview",
+    "result": "Preview of your photo"
+  },
+  "profile": {
+    "title": "My profile",
+    "dob": "Date of birth",
+    "dobHint": "Year-month-day, for example 1995-04-30",
+    "gender": "I am",
+    "female": "A woman",
+    "male": "A man",
+    "country": "Country",
+    "save": "Save",
+    "status": {
+      "eligible": "Your account is ready.",
+      "incomplete": "Please complete your profile.",
+      "ineligible": "This service is not available for your account.",
+      "pending_review": "Your account is being reviewed."
+    },
+    "reasons": {
+      "profile_incomplete": "Date of birth, gender and country are needed.",
+      "under_minimum_age": "You are under the minimum age.",
+      "women_only": "The service is for women.",
+      "country_not_available": "We are not in your country yet.",
+      "rejected_by_review": "Not approved after review."
+    }
+  },
+  "identity": {
+    "title": "Identity verification",
+    "status": {
+      "unverified": "Not verified",
+      "pending": "Being reviewed",
+      "verified": "Verified",
+      "rejected": "Not accepted. Please try again."
+    },
+    "explain": "Needed before booking or messaging a stylist. Upload your Emirates ID (front, then back). It is deleted after review.",
+    "uploadId": "Upload Emirates ID",
+    "sent": "Sent for review."
+  },
+  "checkout": {
+    "toPay": "To pay: {{amount}}",
+    "pay": "Pay securely",
+    "sandboxNote": "Test payment (development only).",
+    "sandboxPay": "Complete test payment"
+  },
+  "library": {
+    "title": {
+      "guide": "Guides and palettes",
+      "report": "Reports"
+    },
+    "free": "Free",
+    "open": "Open",
+    "add": "Add to my library",
+    "buy": "Buy",
+    "reports": "Detailed reports"
+  },
+  "plans": {
+    "title": {
+      "customer": "Membership",
+      "consultant": "Consultant membership"
+    },
+    "per": {
+      "month": "{{amount}} a month",
+      "year": "{{amount}} a year"
+    },
+    "choose": "Choose",
+    "current": "Your plan: {{plan}}",
+    "renewsOn": "Renews on {{date}}",
+    "endsOn": "Ends on {{date}}",
+    "cancel": "Cancel renewal"
+  },
+  "retail": {
+    "title": "Shop your style",
+    "intro": "Pieces from retailers that match your results. You will leave the app to buy.",
+    "empty": "No suggestions yet.",
+    "matched": "Matches your results"
+  },
+  "rewards": {
+    "title": "Rewards",
+    "balance": "{{count}} points",
+    "cost": "{{count}} points",
+    "redeem": "Redeem",
+    "redeemed": "Done. You can use it when booking.",
+    "howToEarn": "How to earn points"
+  },
+  "shop": {
+    "title": "Shop",
+    "order": "Order",
+    "delivery": "Delivery for {{item}}",
+    "continue": "Continue to payment",
+    "ordered": "Thank you. Your order is placed.",
+    "fields": {
+      "full_name": "Full name",
+      "phone": "Phone",
+      "line1": "Address",
+      "city": "City"
+    }
+  },
+  "offers": {
+    "title": {
+      "offers": "Offers",
+      "vouchers": "Vouchers"
+    },
+    "none": "Nothing here right now.",
+    "sponsored": "Sponsored by {{name}}",
+    "visit": "Visit",
+    "claim": "Get the code"
+  },
+  "services": {
+    "consultation": "Consultation",
+    "occasion_audit": "Occasion style audit",
+    "wardrobe_audit": "Wardrobe audit",
+    "makeup_audit": "Makeup audit",
+    "expert_color": "Expert colour analysis",
+    "personal_shopper_day": "Personal shopper day"
+  },
+  "stylists": {
+    "title": "Find a stylist",
+    "city": "City",
+    "none": "No stylists match yet.",
+    "featured": "Featured",
+    "rating": "{{rating}} ★ ({{count}})",
+    "distance": "{{km}} km away",
+    "testimonials": "What clients say"
+  },
+  "booking": {
+    "title": "Book",
+    "service": "Service",
+    "time": "Time",
+    "noSlots": "No times available.",
+    "address": "Meeting address",
+    "city": "City",
+    "book": "Book",
+    "useReward": "Use my free consultation",
+    "confirmed": "Your booking is confirmed.",
+    "mine": "My bookings",
+    "none": "No bookings yet.",
+    "openConsultation": "Open",
+    "message": "Message",
+    "cancel": "Cancel",
+    "review": "Leave a review",
+    "rating": "Rating",
+    "reviewText": "Your words (optional)",
+    "sendReview": "Send",
+    "status": {
+      "pending_payment": "Awaiting payment",
+      "confirmed": "Confirmed",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    }
+  },
+  "consultation": {
+    "with": "With {{name}}",
+    "reportPending": "Your stylist's report will appear here.",
+    "openPdf": "Open as PDF",
+    "aboutYou": "About the occasion",
+    "saveIntake": "Save",
+    "photos": "Photos for your stylist",
+    "caption": "Caption (optional)",
+    "consent": "Photos you add are shared only with this stylist.",
+    "addPhoto": "Add a photo",
+    "shareMyPhoto": "Share my face photo",
+    "intake": {
+      "occasion": "Occasion",
+      "role": "Your role there",
+      "personality": "How you want to come across",
+      "goals": "What you want from your wardrobe",
+      "notes": "Anything to tell your stylist"
+    },
+    "purpose": {
+      "outfit": "Outfit",
+      "wardrobe": "Wardrobe",
+      "product": "Product",
+      "face": "Face"
+    },
+    "verdict": {
+      "suits": "Suits you",
+      "adjust": "Use with changes",
+      "avoid": "Avoid"
+    }
+  },
+  "messages": {
+    "title": "Messages",
+    "none": "No conversations yet.",
+    "unread": "New",
+    "policy": "Keep conversations in the app. Messages with phone numbers, emails, links or bank details are not delivered.",
+    "write": "Message",
+    "send": "Send",
+    "notDelivered": "Not delivered",
+    "warning": {
+      "contact_details_blocked": "This message was not delivered because it contains contact or payment details.",
+      "contact_details_flagged": "This message contains contact details and has been flagged."
+    },
+    "consequence": {
+      "warning": "This is a warning. Repeated attempts pause messaging.",
+      "suspended": "Messaging is paused on your account for now.",
+      "banned": "Your account has been closed."
+    }
+  },
+  "application": {
+    "title": "Become a stylist",
+    "bio": "About you and your work",
+    "city": "City",
+    "save": "Save",
+    "credentials": "Credentials",
+    "credentialTitle": "Title (optional)",
+    "addCredential": "Add a photo of the document",
+    "submit": "Submit for review",
+    "openPractice": "Open my practice",
+    "status": {
+      "draft": "Not submitted yet",
+      "submitted": "Being reviewed",
+      "approved": "Approved",
+      "rejected": "Not approved. You can update and resubmit.",
+      "suspended": "Suspended"
+    },
+    "credentialStatus": {
+      "pending": "waiting",
+      "accepted": "accepted",
+      "rejected": "not accepted"
+    },
+    "kinds": {
+      "certification": "Certification",
+      "practice_evidence": "Evidence of practice",
+      "invoice": "Client invoice",
+      "testimonial": "Testimonial",
+      "referral": "Referral",
+      "business_license": "Business licence"
+    }
+  },
+  "practice": {
+    "title": "My practice",
+    "membership": "Consultant membership",
+    "none": "No bookings yet.",
+    "complete": "Mark as completed"
   }
 }

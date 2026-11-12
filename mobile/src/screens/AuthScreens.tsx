@@ -3,7 +3,8 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
-import { AppText, Button, ErrorBanner, LanguageSwitch, Screen, TextField } from '../components/ui';
+import type { Gender } from '../api/client';
+import { AppText, Button, Chips, ErrorBanner, LanguageSwitch, Screen, TextField } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import type { AuthStackParams } from '../navigation/RootNavigator';
 import { spacing } from '../theme';
@@ -12,7 +13,8 @@ import { errorMessage } from './errorMessage';
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD = 10; // matches the API's rule
 
-type Errors = Partial<Record<'email' | 'password' | 'fullName', string>>;
+type Errors = Partial<Record<'email' | 'password' | 'fullName' | 'dateOfBirth' | 'gender', string>>;
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function Layout({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
@@ -107,12 +109,20 @@ export function RegisterScreen({ navigation }: NativeStackScreenProps<AuthStackP
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gender, setGender] = useState<Gender | null>(null);
   const [errors, setErrors] = useState<Errors>({});
   const [failure, setFailure] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
     const found: Errors = {};
+    if (!DATE.test(dateOfBirth.trim()) || Number.isNaN(Date.parse(dateOfBirth.trim()))) {
+      found.dateOfBirth = 'validation.dateInvalid';
+    }
+    if (!gender) {
+      found.gender = 'validation.genderRequired';
+    }
     if (!fullName.trim()) {
       found.fullName = 'validation.nameRequired';
     }
@@ -131,7 +141,11 @@ export function RegisterScreen({ navigation }: NativeStackScreenProps<AuthStackP
     setBusy(true);
     setFailure(null);
     try {
-      await register({ email: email.trim(), password, fullName: fullName.trim() });
+      // The UAE is the only market at launch (Feature List row 3); more appear in the profile later.
+      await register({
+        email: email.trim(), password, fullName: fullName.trim(),
+        dateOfBirth: dateOfBirth.trim(), gender: gender ?? undefined, countryCode: 'AE',
+      });
     } catch (error) {
       setFailure(error);
       setBusy(false);
@@ -174,6 +188,26 @@ export function RegisterScreen({ navigation }: NativeStackScreenProps<AuthStackP
         onSubmitEditing={submit}
         testID="password"
       />
+      <TextField
+        label={t('profile.dob')}
+        hint={t('profile.dobHint')}
+        value={dateOfBirth}
+        onChangeText={setDateOfBirth}
+        error={errors.dateOfBirth && t(errors.dateOfBirth)}
+        keyboardType="numbers-and-punctuation"
+        testID="dob"
+      />
+      <Chips
+        label={t('profile.gender')}
+        value={gender}
+        onChange={setGender}
+        testID="gender"
+        options={[{ value: 'female', label: t('profile.female') }, { value: 'male', label: t('profile.male') }]}
+      />
+      {errors.gender ? <ErrorBanner message={t(errors.gender)} /> : null}
+      <AppText variant="small" muted>
+        {t('auth.eligibilityNote')}
+      </AppText>
       <Button label={t('auth.register')} onPress={submit} loading={busy} testID="submit" />
       <Button kind="link" label={t('auth.haveAccount')} onPress={() => navigation.goBack()} testID="go-login" />
     </Layout>

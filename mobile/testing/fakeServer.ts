@@ -76,6 +76,12 @@ export function createFakeServer() {
       refresh.clear();
     },
     account: (email: string) => accounts.find(a => a.email === email)!,
+    /**
+     * Extra endpoints for a test: "METHOD /path" -> handler. The handler gets the
+     * parsed JSON body (or the form) and the request language, and returns
+     * [status, body]. A body of type Uint8Array is sent as image bytes.
+     */
+    routes: {} as Record<string, (body: any, language: Language) => [number, unknown]>,
   };
 
   const json = (status: number, body?: unknown) =>
@@ -141,6 +147,17 @@ export function createFakeServer() {
         Object.assign(current, body);
       }
       return json(200, publicUser(current));
+    }
+    const route = state.routes[`${method} ${path}`];
+    if (route) {
+      if (!current) {
+        return fail(401, 'invalid_token', language);
+      }
+      const [status, payload] = route(form ?? body, language);
+      if (payload instanceof Uint8Array) {
+        return { ok: status < 400, status, arrayBuffer: async () => payload.buffer } as unknown as Response;
+      }
+      return json(status, payload);
     }
     if (path.startsWith('/assessments/') || path.startsWith('/recommendations/') || path.startsWith('/assessment-images')) {
       if (!current) {

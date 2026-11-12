@@ -66,6 +66,111 @@ export type PhotoKind = 'face' | 'full_body';
 /** A file picked on the device (React Native form part), or a Blob when running under Node. */
 export type PhotoFile = { uri: string; name: string; type: string } | Blob;
 
+
+// ---------- photo analysis and previews ----------
+export type AnalysisKind = 'face_shape' | 'body_shape' | 'seasonal_color';
+export type PhotoAnalysis = {
+  id: string;
+  kind: AnalysisKind;
+  basis: 'photo_analysis';
+  indicative: true;
+  created_at: string;
+  confidence: number;
+  low_confidence: boolean;
+  notes: string[];
+  scores: { key: string; title: string; score: number }[];
+  swatches?: Record<string, string>;
+  profile: { key: string; title: string; summary: string; palette: string[] | null; advice: Record<string, string[]> } | null;
+};
+export type PreviewKind = 'hair-colour' | 'outfit-colour' | 'makeup';
+
+// ---------- profile and identity ----------
+export type Gender = 'female' | 'male';
+export type Profile = {
+  date_of_birth: string | null;
+  gender: Gender | null;
+  country_code: string | null;
+  city: string | null;
+  phone: string | null;
+  eligibility_status: 'incomplete' | 'eligible' | 'ineligible' | 'pending_review';
+  eligibility_reasons: string[];
+  identity_status: 'unverified' | 'pending' | 'verified' | 'rejected';
+};
+export type Country = { code: string; name: string; currency: string };
+export type Verification = { id: string; method: string; status: string; reason: string | null; created_at: string };
+
+// ---------- commerce ----------
+export type Product = {
+  key: string; kind: string; title: string; description: string; price_minor: number; currency: string;
+  is_free: boolean; requires_shipping: boolean; owned: boolean | null;
+};
+export type Plan = { key: string; audience: string; title: string; description: string; price_minor: number; currency: string; interval: 'month' | 'year' };
+export type Checkout = { order_id: string; status: string; amount_minor: number; currency: string; provider: string | null; payment_url: string | null };
+export type Subscription = { id: string; status: string; plan: Plan; current_period_end: string | null; cancel_at_period_end: boolean };
+export type RetailItem = { id: string; retailer: string; title: string; image_url: string | null; price_text: string | null; match: number };
+export type Rewards = { balance: number; how_to_earn: { event: string; points: number; description: string }[]; history: { delta: number; event: string; created_at: string }[] };
+export type RedemptionOption = { key: string; title: string; points_cost: number };
+
+// ---------- marketplace ----------
+export type StylistService = { id: string; kind: string; title: string; description: string; price_minor: number; currency: string; duration_minutes: number; mode: 'online' | 'in_person' };
+export type StylistSummary = {
+  id: string; display_name: string; bio: string; city: string | null; languages: string[]; specialities: string[];
+  rating_avg: number; rating_count: number; promoted: boolean; distance_km: number | null; services: StylistService[];
+};
+export type StylistDetail = StylistSummary & {
+  years_experience: number | null;
+  testimonials: { rating: number; text: string; created_at: string }[];
+  slots: { id: string; starts_at: string; ends_at: string }[];
+};
+export type Booking = {
+  id: string; status: string; kind: string; starts_at: string; ends_at: string; price_minor: number; currency: string;
+  paid_with: string | null; stylist: { id: string; display_name: string }; service: StylistService; address: Record<string, string> | null;
+  cancelled_by: string | null;
+};
+export type ReportSection = { key: string; title: string; type: string; value: any };
+export type Consultation = {
+  id: string; booking_id: string; kind: string; status: string; intake: Record<string, string>; role: 'customer' | 'stylist';
+  stylist: { id: string; display_name: string };
+  files: { id: string; purpose: string; caption: string | null; verdict: { verdict: string; note: string | null } | null }[];
+  report: { title: string; status: string; sections: ReportSection[] } | null;
+  required_intake: string[]; allowed_purposes: string[];
+};
+export type Thread = { id: string; with: { id: string; name: string }; last_message_at: string | null; unread: boolean };
+export type Message = { id: string; mine: boolean; body: string; created_at: string; status: 'delivered' | 'not_delivered'; read: boolean };
+export type SendResult = { message: Message; warning: { code: string; kinds: string[]; consequence?: string } | null };
+export type StylistApplication = {
+  id: string; display_name: string; bio: string; city: string | null; languages: string[]; status: string; review_note: string | null;
+};
+export type Campaign = { id: string; advertiser: string; placement: string; title: string; body: string; image_url: string | null; has_link: boolean };
+export type Voucher = { id: string; partner: string; title: string; terms: string; ends_at: string; remaining: number | null; code: string | null };
+
+export type FilePart = PhotoFile;
+
+const BASE64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+/** Bytes to base64 without a native module (used to show generated previews). */
+/* eslint-disable no-bitwise */
+export function toBase64(bytes: Uint8Array): string {
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const [a, b = 0, c = 0] = [bytes[i], bytes[i + 1], bytes[i + 2]];
+    const n = (a << 16) | (b << 8) | c;
+    out += BASE64[(n >> 18) & 63] + BASE64[(n >> 12) & 63];
+    out += i + 1 < bytes.length ? BASE64[(n >> 6) & 63] : '=';
+    out += i + 2 < bytes.length ? BASE64[n & 63] : '=';
+  }
+  return out;
+}
+/* eslint-enable no-bitwise */
+
+function appendFile(form: FormData, name: string, file: FilePart) {
+  if (typeof Blob !== 'undefined' && file instanceof Blob) {
+    (form as any).append(name, file, `${name}.jpg`);
+  } else {
+    form.append(name, file as any);
+  }
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -190,6 +295,26 @@ export function createApiClient(options: Options) {
     return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
   }
 
+  /** A request whose answer is an image: returned as a data URI for <Image source={{ uri }} />. */
+  async function requestImage(method: string, path: string, body: unknown): Promise<string> {
+    const tokens = await tokenStore.load();
+    let response = await send(method, path, body, tokens?.accessToken ?? null);
+    if (response.status === 401 && tokens) {
+      const renewed = await refreshTokens(tokens.refreshToken);
+      if (!renewed) {
+        await tokenStore.clear();
+        expiryListeners.forEach(listener => listener());
+        throw await toError(response);
+      }
+      response = await send(method, path, body, renewed.accessToken);
+    }
+    if (!response.ok) {
+      throw await toError(response);
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    return `data:image/jpeg;base64,${toBase64(bytes)}`;
+  }
+
   async function startSession(path: string, body: unknown): Promise<User> {
     const tokens = toTokens(await request<TokenResponse>('POST', path, { body, auth: false }));
     await tokenStore.save(tokens);
@@ -205,8 +330,15 @@ export function createApiClient(options: Options) {
       };
     },
 
-    register: (input: { email: string; password: string; full_name: string; preferred_language: Language }) =>
-      startSession('/auth/register', input),
+    register: (input: {
+      email: string;
+      password: string;
+      full_name: string;
+      preferred_language: Language;
+      date_of_birth?: string;
+      gender?: Gender;
+      country_code?: string;
+    }) => startSession('/auth/register', input),
 
     login: (email: string, password: string) => startSession('/auth/login', { email, password }),
 
@@ -258,6 +390,111 @@ export function createApiClient(options: Options) {
     photos: () => request<Photo[]>('GET', '/assessment-images'),
 
     deletePhoto: (id: string) => request<void>('DELETE', `/assessment-images/${id}`),
+
+
+    /** Absolute URL for a path the API returned (payment pages, download links). */
+    absolute: (path: string) => (path.startsWith('http') ? path : `${baseUrl}${path.startsWith('/api/') ? '' : '/api/v1'}${path}`),
+
+    // ---------- photo analysis and previews ----------
+    analysePhoto: (kind: AnalysisKind, imageId: string) =>
+      request<PhotoAnalysis>('POST', `/analysis/${kind}`, { body: { image_id: imageId } }),
+    latestAnalysis: (kind: AnalysisKind) => request<PhotoAnalysis | null>('GET', `/analysis/${kind}`),
+    preview: (kind: PreviewKind, body: Record<string, unknown>) => requestImage('POST', `/previews/${kind}`, body),
+
+    // ---------- profile, markets, identity ----------
+    profile: () => request<Profile>('GET', '/users/me/profile'),
+    updateProfile: (changes: Partial<Pick<Profile, 'date_of_birth' | 'gender' | 'country_code' | 'city' | 'phone'>>) =>
+      request<Profile>('PUT', '/users/me/profile', { body: changes }),
+    countries: () => request<Country[]>('GET', '/countries', { auth: false }),
+    uaePassStart: () => request<{ provider: string; authorize_url: string }>('GET', '/identity/uae-pass/start'),
+    uaePassComplete: (code: string) => request<Verification>('POST', '/identity/uae-pass/complete', { body: { code } }),
+    uploadIdDocument(front: FilePart, back?: FilePart) {
+      const form = new FormData();
+      appendFile(form, 'front', front);
+      if (back) {
+        appendFile(form, 'back', back);
+      }
+      return request<Verification>('POST', '/identity/documents', { body: form });
+    },
+    verifications: () => request<Verification[]>('GET', '/identity/verifications'),
+
+    // ---------- shop, library, plans ----------
+    products: (kind?: string) => request<Product[]>('GET', `/shop/products${kind ? `?kind=${kind}` : ''}`),
+    plans: (audience = 'customer') => request<Plan[]>('GET', `/shop/plans?audience=${audience}`),
+    buyProduct: (productKey: string, quantity = 1, shipping?: Record<string, string>) =>
+      request<Checkout>('POST', '/checkout/product', { body: { product_key: productKey, quantity, shipping } }),
+    buyPlan: (planKey: string) => request<Checkout>('POST', '/checkout/plan', { body: { plan_key: planKey } }),
+    /** Development only: completes a sandbox payment the way the gateway's webhook would. */
+    sandboxPay: (paymentUrl: string) => request<{ status: string }>('POST', paymentUrl),
+    library: () => request<Product[]>('GET', '/library'),
+    claimFree: (productKey: string) => request<{ key: string; owned: boolean }>('POST', `/library/${productKey}/claim`),
+    downloadLink: (productKey: string) => request<{ path: string }>('GET', `/library/${productKey}/link`),
+    subscriptions: () => request<Subscription[]>('GET', '/me/subscriptions'),
+    cancelSubscription: (id: string) => request<Subscription>('POST', `/me/subscriptions/${id}/cancel`),
+    entitlements: () => request<{ key: string; quantity: number; expires_at: string | null }[]>('GET', '/me/entitlements'),
+    retail: (category = 'outfits') => request<{ based_on: Record<string, string>; items: RetailItem[] }>('GET', `/shop/retail?category=${category}`),
+    retailClick: (id: string) => request<{ url: string }>('POST', `/shop/retail/${id}/click`),
+
+    // ---------- rewards ----------
+    rewards: () => request<Rewards>('GET', '/rewards'),
+    dailyVisit: () => request<{ awarded: number; balance: number }>('POST', '/rewards/daily-visit'),
+    redemptionOptions: () => request<RedemptionOption[]>('GET', '/rewards/redeem'),
+    redeem: (key: string) => request<{ redeemed: string; balance: number }>('POST', `/rewards/redeem/${key}`),
+
+    // ---------- marketplace ----------
+    stylists: (filters: { kind?: string; city?: string; language?: string } = {}) => {
+      const query = Object.entries(filters).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&');
+      return request<StylistSummary[]>('GET', `/stylists${query ? `?${query}` : ''}`);
+    },
+    stylist: (id: string) => request<StylistDetail>('GET', `/stylists/${id}`),
+    book: (input: { service_id: string; slot_id: string; use_reward?: boolean; address?: { line1: string; city: string; notes?: string } }) =>
+      request<{ booking: Booking; checkout: Checkout | null }>('POST', '/bookings', { body: input }),
+    bookings: () => request<Booking[]>('GET', '/bookings'),
+    cancelBooking: (id: string) => request<Booking>('POST', `/bookings/${id}/cancel`),
+    testimonial: (bookingId: string, rating: number, text: string) =>
+      request<{ id: string }>('POST', `/bookings/${bookingId}/testimonial`, { body: { rating, text } }),
+    consultations: () => request<Consultation[]>('GET', '/consultations'),
+    consultation: (id: string) => request<Consultation>('GET', `/consultations/${id}`),
+    saveIntake: (id: string, intake: Record<string, string>) => request<Consultation>('PUT', `/consultations/${id}/intake`, { body: { intake } }),
+    sharePhoto: (id: string, imageId: string) =>
+      request<{ id: string }>('POST', `/consultations/${id}/share-photo`, { body: { image_id: imageId, consent: true } }),
+    addConsultationPhoto(id: string, file: FilePart, purpose: string, caption?: string) {
+      const form = new FormData();
+      appendFile(form, 'file', file);
+      form.append('purpose', purpose);
+      form.append('consent', 'true');
+      if (caption) {
+        form.append('caption', caption);
+      }
+      return request<{ id: string }>('POST', `/consultations/${id}/files`, { body: form });
+    },
+    reportLink: (id: string) => request<{ path: string }>('GET', `/consultations/${id}/report-link`),
+    threads: () => request<Thread[]>('GET', '/messages'),
+    openThread: (stylistId: string) => request<Thread>('POST', '/messages', { body: { stylist_id: stylistId } }),
+    messages: (threadId: string) => request<Message[]>('GET', `/messages/${threadId}`),
+    sendMessage: (threadId: string, body: string) => request<SendResult>('POST', `/messages/${threadId}`, { body: { body } }),
+
+    // ---------- stylist side ----------
+    myApplication: () => request<StylistApplication | null>('GET', '/stylist/application'),
+    saveApplication: (fields: Partial<StylistApplication>) => request<StylistApplication>('PUT', '/stylist/application', { body: fields }),
+    addCredential(kind: string, title: string, file: FilePart) {
+      const form = new FormData();
+      appendFile(form, 'file', file);
+      form.append('kind', kind);
+      form.append('title', title);
+      return request<{ id: string }>('POST', '/stylist/application/credentials', { body: form });
+    },
+    credentials: () => request<{ id: string; kind: string; title: string; status: string }[]>('GET', '/stylist/application/credentials'),
+    submitApplication: () => request<StylistApplication>('POST', '/stylist/application/submit'),
+    practiceBookings: () => request<Booking[]>('GET', '/stylist/bookings'),
+    completeBooking: (id: string) => request<Booking>('POST', `/stylist/bookings/${id}/complete`),
+
+    // ---------- promotions ----------
+    promotions: (placement = 'home_banner') => request<Campaign[]>('GET', `/promotions?placement=${placement}`),
+    promotionClick: (id: string) => request<{ url: string }>('POST', `/promotions/${id}/click`),
+    vouchers: () => request<Voucher[]>('GET', '/vouchers'),
+    myVouchers: () => request<Voucher[]>('GET', '/vouchers/mine'),
+    claimVoucher: (id: string) => request<Voucher>('POST', `/vouchers/${id}/claim`),
 
     /** Enabled phases and features for the active release. Drives navigation. */
     enabledFeatures: () => request<EnabledFeatures>('GET', '/config/features'),

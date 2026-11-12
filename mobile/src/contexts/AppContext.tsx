@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { AppState } from 'react-native';
 
 import { api as defaultApi } from '../api';
-import { ApiError, type ApiClient, type Language, type User } from '../api/client';
+import { ApiError, type ApiClient, type Gender, type Language, type User } from '../api/client';
 import i18n, { isRTL } from '../localization';
 import { loadChosenLanguage, saveChosenLanguage } from '../storage/secureStore';
 
@@ -20,7 +20,7 @@ type AppState_ = {
   /** One-off message for the sign-in screen, e.g. after the session expired. */
   notice: 'sessionExpired' | null;
   signIn(email: string, password: string): Promise<void>;
-  register(input: { email: string; password: string; fullName: string }): Promise<void>;
+  register(input: { email: string; password: string; fullName: string; dateOfBirth?: string; gender?: Gender; countryCode?: string }): Promise<void>;
   signOut(): Promise<void>;
   setLanguage(language: Language): Promise<void>;
   refreshFeatures(): Promise<void>;
@@ -164,8 +164,13 @@ export function AppProvider({ children, api = defaultApi }: { children: React.Re
       featuresError,
       notice,
       signIn: async (email, password) => enter(await api.login(email, password)),
-      register: async ({ email, password, fullName }) =>
-        enter(await api.register({ email, password, full_name: fullName, preferred_language: i18n.language as Language })),
+      register: async ({ email, password, fullName, dateOfBirth, gender, countryCode }) =>
+        enter(
+          await api.register({
+            email, password, full_name: fullName, preferred_language: i18n.language as Language,
+            date_of_birth: dateOfBirth, gender, country_code: countryCode,
+          }),
+        ),
       signOut: async () => {
         await api.logout();
         leave(null);

@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { launchCamera, launchImageLibrary, type ImagePickerResponse } from 'react-native-image-picker';
 import { useTranslation } from 'react-i18next';
 
-import { ApiError, type PhotoKind } from '../api/client';
+import { ApiError, type AnalysisKind, type PhotoKind } from '../api/client';
 import { AppText, Bullets, Button, Card, ErrorBanner, Row, Screen, ScreenHeader } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
@@ -15,12 +15,17 @@ import { useLoad } from './useLoad';
 type Props = NativeStackScreenProps<AppStackParams, 'Photos'>;
 
 const KINDS: PhotoKind[] = ['face', 'full_body'];
+const ANALYSES: Record<PhotoKind, { kind: AnalysisKind; feature: string }[]> = {
+  face: [{ kind: 'face_shape', feature: 'phase1.face_shape' }, { kind: 'seasonal_color', feature: 'phase1.seasonal_color' }],
+  full_body: [{ kind: 'body_shape', feature: 'phase1.body_shape' }],
+};
 // Downscale on the device: plenty for assessment, and keeps uploads well under the 10 MB limit.
 const PICKER = { mediaType: 'photo', selectionLimit: 1, maxWidth: 2000, maxHeight: 2000, quality: 0.9 } as const;
 
 export function PhotosScreen({ navigation }: Props) {
   const { t } = useTranslation();
-  const { api } = useApp();
+  const { api, features } = useApp();
+  const on = new Set(features ?? []);
   const { data: photos, error, loading, reload } = useLoad(() => api.photos(), [api]);
   const [kind, setKind] = useState<PhotoKind>('face');
   const [consent, setConsent] = useState(false);
@@ -143,6 +148,12 @@ export function PhotosScreen({ navigation }: Props) {
               </View>
               <Button kind="link" label={t('photos.delete')} onPress={() => remove(photo.id)} testID={`delete-${photo.id}`} />
             </Row>
+            <Row style={styles.analyses}>
+              {ANALYSES[photo.kind].filter(a => on.has(a.feature)).map(a => (
+                <Button key={a.kind} kind="link" label={t(`photos.analyse.${a.kind}`)} testID={`analyse-${a.kind}-${photo.id}`}
+                  onPress={() => navigation.navigate('PhotoAnalysis', { kind: a.kind })} />
+              ))}
+            </Row>
           </Card>
         ))}
       </ScrollView>
@@ -179,4 +190,5 @@ const styles = StyleSheet.create({
   boxChecked: { backgroundColor: colors.primary },
   tick: { color: colors.onPrimary, fontSize: 14, lineHeight: 18, textAlign: 'center' },
   rejected: { borderColor: colors.danger },
+  analyses: { gap: spacing.md, flexWrap: 'wrap' },
 });

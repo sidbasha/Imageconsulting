@@ -276,3 +276,25 @@ def test_registration_stores_the_eligibility_facts(client, db):
     register(client, "row@example.com", **ELIGIBLE)
     profile = db.scalars(select(CustomerProfile).where(CustomerProfile.country_code == "AE")).all()
     assert [(p.gender, p.date_of_birth, p.eligibility_status) for p in profile if p.date_of_birth == date(1990, 5, 1)]
+
+
+def test_download_links_open_the_pdf_without_the_app_token_and_expire(client, customer, monkeypatch):
+    from app.core import security
+
+    client.post(f"{API}/library/guide.palette.winter/claim", headers=customer)
+    path = client.get(f"{API}/library/guide.palette.winter/link", headers=customer).json()["path"]
+    opened = client.get(path)  # no Authorization header, like a browser
+    assert opened.status_code == 200 and opened.content.startswith(b"%PDF")
+    # Not usable as an access token, and not for another document.
+    token = path.rsplit("/", 1)[1]
+    assert client.get(f"{API}/users/me", headers={"Authorization": f"Bearer {token}"}).status_code == 401
+    assert client.get(f"{API}/library/guide.body.pear/link", headers=customer).status_code == 402
+    monkeypatch.setattr(security, "DOWNLOAD_MINUTES", -1)
+    expired = client.get(f"{API}/library/guide.palette.winter/link", headers=customer).json()["path"]
+    assert client.get(expired).status_code == 404
+
+
+def test_retail_click_returns_the_link(client, customer, owner):
+    item = client.post(f"{API}/admin/retail-items", json={"retailer": "A", "title": {"en": "Dress", "ar": "فستان"},
+                       "url": "https://shop.example/a"}, headers=owner).json()
+    assert client.post(f"{API}/shop/retail/{item['id']}/click", headers=customer).json() == {"url": "https://shop.example/a"}

@@ -65,6 +65,16 @@ def placements(request: Request, placement: str = Query(default="home_banner", p
     return [campaign_out(c, language) for c in service.live_campaigns(db, on, placement, lat, lng)]
 
 
+@ads.post("/{campaign_id}/click")
+def click(campaign_id: uuid.UUID, _: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    c = db.get(Campaign, campaign_id)
+    if c is None or c.status != "active" or not c.target_url:
+        raise AppError(404, "not_found")
+    c.clicks += 1
+    db.flush()
+    return {"url": c.target_url}
+
+
 @ads.get("/{campaign_id}/go")
 def go(campaign_id: uuid.UUID, _: User = Depends(get_current_user), db: Session = Depends(get_db)):
     c = db.get(Campaign, campaign_id)
