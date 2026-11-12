@@ -1,6 +1,8 @@
 import os
 
 os.environ["IC_ENV"] = "testing"
+# Never touch the real bucket from tests, whatever backend/.env says.
+os.environ["IC_STORAGE_BACKEND"] = "local"
 os.environ["IC_DATABASE_URL"] = os.environ.get(
     "IC_TEST_DATABASE_URL", "postgresql+psycopg://ic:ic@localhost:5432/ic_test"
 )

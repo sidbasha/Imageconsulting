@@ -72,8 +72,8 @@ refused with the reason. Switching something off hides it; data is kept. Run
 In the Render dashboard: **New → Blueprint**, connect this GitHub repo and branch, then paste
 the Neon pooled URL into `IC_DATABASE_URL` and the direct URL into `IC_MIGRATION_DATABASE_URL`.
 Each start runs migrations, the seed and `release apply`. The free instance has 512 MB RAM and
-a disk that is wiped on restart, so uploaded photos do not survive a redeploy (object storage
-is the fix). Point the app at it with `PRODUCTION_API_URL` in `mobile/src/config.ts`.
+a disk that is wiped on restart, so files go to Neon Object Storage: set `IC_STORAGE_BACKEND=s3`,
+`IC_S3_BUCKET` and the four `AWS_*` values from `backend/.env` in the service's Environment. Point the app at it with `PRODUCTION_API_URL` in `mobile/src/config.ts`.
 
 ## Demo hosting that does not sleep
 

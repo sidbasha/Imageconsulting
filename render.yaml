@@ -28,3 +28,17 @@ services:
         value: auto
       - key: IC_KEEP_ALIVE_MINUTES
         value: "10"
+      # Photos and try-on images in Neon Object Storage (bucket ic-uploads); Render's disk is wiped
+      # on every deploy. Values: backend/.env (written by `neon env pull`).
+      - key: IC_STORAGE_BACKEND
+        sync: false          # s3
+      - key: IC_S3_BUCKET
+        sync: false          # ic-uploads
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_ENDPOINT_URL_S3
+        sync: false
+      - key: AWS_REGION
+        sync: false          # us-east-2
