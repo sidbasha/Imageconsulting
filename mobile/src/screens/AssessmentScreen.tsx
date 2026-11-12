@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
@@ -7,7 +7,7 @@ import type { AnalysisKind, AssessmentResult, Questionnaire } from '../api/clien
 import { AppText, Bullets, Button, Card, ErrorBanner, Palette, Row, Screen, ScreenHeader } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
-import { colors, radius, spacing } from '../theme';
+import { colors, gradients, radius, shadows, spacing } from '../theme';
 import { errorMessage } from './errorMessage';
 import { useLoad } from './useLoad';
 
@@ -121,6 +121,9 @@ function Runner({ questionnaire, submit, onDone }: RunnerProps) {
       <AppText variant="small" muted testID="progress">
         {t('assessment.progress', { current: index + 1, total })}
       </AppText>
+      <View style={styles.track}>
+        <View style={[styles.fill, { width: `${((index + 1) / total) * 100}%`, backgroundImage: gradients.primary }]} />
+      </View>
       <AppText variant="heading" accessibilityRole="header">
         {question.prompt}
       </AppText>
@@ -135,8 +138,14 @@ function Runner({ questionnaire, submit, onDone }: RunnerProps) {
               accessibilityLabel={option.label}
               testID={`option-${option.key}`}
               onPress={() => setAnswers({ ...answers, [question.key]: option.key })}
-              style={[styles.option, selected && styles.optionSelected]}>
-              <AppText style={selected ? styles.optionLabelSelected : undefined}>{option.label}</AppText>
+              style={({ pressed }) => [styles.option, { boxShadow: shadows.soft }, selected && styles.optionSelected,
+                pressed && styles.optionPressed]}>
+              <Row style={styles.optionRow}>
+                <AppText style={[styles.flexText, selected ? styles.optionLabelSelected : undefined]}>{option.label}</AppText>
+                <View style={[styles.radio, selected && { backgroundImage: gradients.primary, borderColor: colors.primary }]}>
+                  {selected ? <Text style={styles.check}>✓</Text> : null}
+                </View>
+              </Row>
             </Pressable>
           );
         })}
@@ -221,6 +230,13 @@ const styles = StyleSheet.create({
     minHeight: 52,
     justifyContent: 'center',
   },
-  optionSelected: { borderColor: colors.primary, borderWidth: 2, backgroundColor: colors.badge },
-  optionLabelSelected: { fontWeight: '600' },
+  optionSelected: { borderColor: colors.primary, borderWidth: 1.5, backgroundColor: colors.primarySoft },
+  optionLabelSelected: { fontWeight: '600', color: colors.primaryDeep },
+  optionPressed: { transform: [{ scale: 0.985 }] },
+  optionRow: { gap: spacing.md, alignItems: 'center' },
+  flexText: { flex: 1 },
+  radio: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  check: { color: colors.onPrimary, fontSize: 14, fontWeight: '700' },
+  track: { height: 6, borderRadius: 3, backgroundColor: colors.primarySoft, overflow: 'hidden' },
+  fill: { height: 6, borderRadius: 3 },
 });

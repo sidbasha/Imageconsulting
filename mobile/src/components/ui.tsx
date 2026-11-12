@@ -22,7 +22,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useApp } from '../contexts/AppContext';
 import { LANGUAGES } from '../localization';
-import { colors, radius, spacing, type } from '../theme';
+import { colors, fonts, gradients, radius, shadows, spacing, type } from '../theme';
 
 export function useDirection() {
   const { rtl } = useApp();
@@ -36,14 +36,16 @@ export function useDirection() {
 type Variant = 'title' | 'heading' | 'body' | 'small';
 
 export function AppText({ variant = 'body', muted, style, ...rest }: TextProps & { variant?: Variant; muted?: boolean }) {
-  const { text } = useDirection();
-  return <Text {...rest} style={[type[variant], { color: muted ? colors.muted : colors.text }, text, style]} />;
+  const { text, rtl } = useDirection();
+  // Titles use the display serif in Latin script; Arabic keeps the system face, which has the glyphs.
+  const display = variant === 'title' && !rtl && fonts.display ? { fontFamily: fonts.display, fontWeight: '700' as const } : null;
+  return <Text {...rest} style={[type[variant], { color: muted ? colors.muted : colors.text }, display, text, style]} />;
 }
 
 export function Screen({ children, testID }: { children: React.ReactNode; testID?: string }) {
   const { rtl } = useDirection();
   return (
-    <SafeAreaView style={styles.screen} testID={testID} accessibilityLanguage={rtl ? 'ar' : 'en'}>
+    <SafeAreaView style={[styles.screen, { backgroundImage: gradients.screen }]} testID={testID} accessibilityLanguage={rtl ? 'ar' : 'en'}>
       {children}
     </SafeAreaView>
   );
@@ -59,12 +61,14 @@ type ButtonProps = {
   label: string;
   onPress: () => void;
   loading?: boolean;
-  kind?: 'primary' | 'link';
+  /** primary: gradient pill; soft: tinted pill; link: text only. */
+  kind?: 'primary' | 'soft' | 'link';
   testID?: string;
 };
 
 export function Button({ label, onPress, loading, kind = 'primary', testID }: ButtonProps) {
   const primary = kind === 'primary';
+  const base = kind === 'primary' ? styles.button : kind === 'soft' ? styles.soft : styles.link;
   return (
     <Pressable
       accessibilityRole="button"
@@ -73,7 +77,8 @@ export function Button({ label, onPress, loading, kind = 'primary', testID }: Bu
       disabled={loading}
       onPress={onPress}
       testID={testID}
-      style={({ pressed }) => [primary ? styles.button : styles.link, (pressed || loading) && styles.dimmed]}>
+      style={({ pressed }) => [base, primary && { backgroundImage: gradients.primary, boxShadow: shadows.button },
+        pressed && styles.pressed, loading && styles.dimmed]}>
       {loading ? (
         <ActivityIndicator color={primary ? colors.onPrimary : colors.primary} />
       ) : (
@@ -85,8 +90,9 @@ export function Button({ label, onPress, loading, kind = 'primary', testID }: Bu
 
 type FieldProps = TextInputProps & { label: string; error?: string | null; hint?: string };
 
-export function TextField({ label, error, hint, style, ...rest }: FieldProps) {
+export function TextField({ label, error, hint, style, onFocus, onBlur, ...rest }: FieldProps) {
   const { text } = useDirection();
+  const [focused, setFocused] = React.useState(false);
   return (
     <View style={styles.field}>
       <AppText variant="small" muted>
@@ -96,7 +102,15 @@ export function TextField({ label, error, hint, style, ...rest }: FieldProps) {
         accessibilityLabel={label}
         placeholderTextColor={colors.muted}
         {...rest}
-        style={[styles.input, text, !!error && styles.inputError, style]}
+        onFocus={e => {
+          setFocused(true);
+          onFocus?.(e);
+        }}
+        onBlur={e => {
+          setFocused(false);
+          onBlur?.(e);
+        }}
+        style={[styles.input, text, focused && styles.inputFocused, !!error && styles.inputError, style]}
       />
       {error ? (
         <AppText variant="small" style={styles.error} accessibilityRole="alert">
@@ -118,7 +132,10 @@ export function ScreenHeader({ title, onBack }: { title: string; onBack: () => v
   return (
     <View style={styles.header}>
       <Row>
-        <Button kind="link" label={`${rtl ? '›' : '‹'} ${t('common.back')}`} onPress={onBack} testID="back" />
+        <Pressable accessibilityRole="button" accessibilityLabel={`${rtl ? '›' : '‹'} ${t('common.back')}`} onPress={onBack} testID="back"
+          style={({ pressed }) => [styles.back, { boxShadow: shadows.soft }, pressed && styles.pressed]}>
+          <Text style={styles.backArrow}>{rtl ? '›' : '‹'}</Text>
+        </Pressable>
       </Row>
       <AppText variant="title" accessibilityRole="header">
         {title}
@@ -128,7 +145,7 @@ export function ScreenHeader({ title, onBack }: { title: string; onBack: () => v
 }
 
 export function Card({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
-  return <View style={[styles.card, style]}>{children}</View>;
+  return <View style={[styles.card, { boxShadow: shadows.soft, backgroundImage: gradients.card }, style]}>{children}</View>;
 }
 
 /** A list of short advice lines with a leading mark on the reading-start side. */
@@ -137,7 +154,7 @@ export function Bullets({ items }: { items: string[] }) {
     <View style={styles.bullets}>
       {items.map(item => (
         <Row key={item} style={styles.bullet}>
-          <AppText muted>•</AppText>
+          <View style={styles.dot} />
           <AppText style={styles.flex}>{item}</AppText>
         </Row>
       ))}
@@ -238,63 +255,83 @@ const styles = StyleSheet.create({
   chips: { gap: spacing.sm, flexWrap: 'wrap' },
   screen: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
-  header: { gap: spacing.xs },
+  header: { gap: spacing.md, marginBottom: spacing.xs },
+  back: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backArrow: { fontSize: 28, lineHeight: 30, color: colors.primary, fontWeight: '300', marginTop: -2 },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
+    borderColor: 'rgba(239, 226, 226, 0.7)',
+    padding: spacing.md + 2,
     gap: spacing.sm,
   },
-  bullets: { gap: spacing.xs },
-  bullet: { gap: spacing.sm, alignItems: 'flex-start' },
+  bullets: { gap: spacing.sm },
+  bullet: { gap: spacing.sm + 2, alignItems: 'flex-start' },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.gold, marginTop: 9 },
   palette: { gap: spacing.sm, flexWrap: 'wrap' },
-  swatch: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
+  swatch: { width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: colors.surface, boxShadow: '0px 3px 8px rgba(46, 31, 39, 0.18)' },
   row: { alignItems: 'center' },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    minHeight: 52,
+    borderRadius: radius.pill,
+    minHeight: 54,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
   },
-  buttonLabel: { ...type.body, color: colors.onPrimary, fontWeight: '600' },
-  link: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  soft: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  buttonLabel: { ...type.body, color: colors.onPrimary, fontWeight: '700', letterSpacing: 0.4 },
+  link: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xs },
   linkLabel: { ...type.body, color: colors.primary, fontWeight: '600' },
+  pressed: { transform: [{ scale: 0.98 }], opacity: 0.92 },
   dimmed: { opacity: 0.6 },
-  field: { gap: spacing.xs },
+  field: { gap: spacing.xs + 2 },
   input: {
     ...type.body,
     color: colors.text,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
+    backgroundColor: colors.surfaceTint,
+    borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: radius.md,
-    minHeight: 52,
+    minHeight: 54,
     paddingHorizontal: spacing.md,
   },
+  inputFocused: { borderColor: colors.primary, backgroundColor: colors.surface, boxShadow: '0px 0px 0px 4px rgba(162, 62, 102, 0.12)' },
   inputError: { borderColor: colors.danger },
   error: { color: colors.danger },
   banner: {
-    borderWidth: 1,
-    borderColor: colors.danger,
     borderRadius: radius.md,
     padding: spacing.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: 'rgba(179, 38, 30, 0.25)',
   },
-  switch: { gap: spacing.sm },
+  switch: { gap: 4, padding: 4, borderRadius: radius.pill, backgroundColor: colors.surface, alignSelf: 'flex-start', boxShadow: shadows.soft },
   chip: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 999,
+    borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     minHeight: 40,
     justifyContent: 'center',
     backgroundColor: colors.surface,
   },
-  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary, backgroundImage: gradients.primary },
   chipLabel: { ...type.small, color: colors.text, fontWeight: '600' },
   chipLabelSelected: { color: colors.onPrimary },
 });

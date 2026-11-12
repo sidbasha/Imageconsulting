@@ -27,7 +27,8 @@
     "noAccount": "New here? Create an account",
     "haveAccount": "Already have an account? Sign in",
     "signOut": "Sign out",
-    "eligibilityNote": "The service is open to women in the UAE. We ask so we can confirm you are eligible."
+    "eligibilityNote": "The service is open to women in the UAE. We ask so we can confirm you are eligible.",
+    "brand": "Image Consulting"
   },
   "validation": {
     "emailRequired": "Enter your email address.",
@@ -48,7 +49,8 @@
     "greeting": "Hello, {{name}}",
     "subtitle": "Your services",
     "empty": "No services are available yet.",
-    "settings": "Settings"
+    "settings": "Settings",
+    "tagline": "Discover the colours, shapes and styles that are truly yours."
   },
   "settings": {
     "title": "Settings",
