@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
 from app.integrations.storage import Storage
-from app.modules.ai_analysis import engine
+from app.modules.ai_analysis import colour_types, engine
 from app.modules.ai_analysis.colour import analyse_colour
 from app.modules.ai_analysis.models import PhotoAnalysis
 from app.modules.ai_analysis.shapes import Unusable, analyse_body_shape, analyse_face_shape
@@ -53,7 +53,10 @@ def run(db: Session, storage: Storage, user: User, kind: str, image_id: uuid.UUI
         raise AppError(422, "photo_not_analysable", {"reasons": exc.reasons, "measurements": exc.measurements}) from exc
     details = {}
     if hasattr(result, "axes"):
-        details = {"axes": result.axes, "swatches": result.swatches}
+        type_scores = colour_types.scores(result.axes)
+        details = {"axes": result.axes, "swatches": result.swatches, "colour_type": next(iter(type_scores)),
+                   # A list, not a dict: JSONB does not keep key order.
+                   "type_scores": [[k, v] for k, v in list(type_scores.items())[:3]]}
     analysis = PhotoAnalysis(
         user_id=user.id,
         image_id=image.id,
@@ -115,7 +118,7 @@ def describe(db: Session, analysis: PhotoAnalysis, language: str) -> dict:
             for key, score in sorted(analysis.scores.items(), key=lambda kv: -kv[1])
         ],
         "measurements": analysis.measurements,
-        **analysis.details,
+        **{k: v for k, v in (analysis.details or {}).items() if k in ("axes", "swatches")},
         "profile": profile
         and {
             "key": profile.key,
@@ -124,5 +127,20 @@ def describe(db: Session, analysis: PhotoAnalysis, language: str) -> dict:
             "palette": profile.palette,
             "advice": {category: tr(items, language) for category, items in profile.advice.items()},
         },
+        "colour_type": _colour_type(analysis, language),
         "model_version": analysis.model_version,
     }
+
+
+def _colour_type(analysis: PhotoAnalysis, language: str) -> dict | None:
+    """The twelve-type reading of a colour analysis (older results: derived from their stored axes)."""
+    from app.modules.assessments.service import tr
+
+    axes = (analysis.details or {}).get("axes")
+    if analysis.kind != "seasonal_color" or not axes:
+        return None
+    key = analysis.details.get("colour_type") or colour_types.nearest(axes)
+    pairs = analysis.details.get("type_scores") or list(colour_types.scores(axes).items())[:3]
+    pairs = sorted(((k, v) for k, v in pairs), key=lambda kv: -kv[1])
+    return {**colour_types.summary(key, language),
+            "scores": [{"key": k, "title": tr(colour_types.BY_KEY[k].title, language), "score": v} for k, v in pairs]}

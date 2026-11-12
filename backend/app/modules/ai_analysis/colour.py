@@ -19,7 +19,9 @@ Method
    warmth (skin hue angle), depth (skin and hair lightness), clarity
    (contrast between skin, hair and eyes, plus skin chroma).
 4. Each season is a corner of that cube: spring warm/light/clear, summer
-   cool/light/soft, autumn warm/deep/soft, winter cool/deep/clear.
+   cool/light/soft, autumn warm/deep/soft, winter cool/deep/clear. The twelve
+   types in colour_types.py split each season by its leading quality; the
+   result is the nearest type, and season scores are sums over their types.
 """
 
 from dataclasses import dataclass, field
@@ -27,7 +29,7 @@ from dataclasses import dataclass, field
 import cv2
 import numpy as np
 
-from app.modules.ai_analysis import engine
+from app.modules.ai_analysis import colour_types, engine
 from app.modules.ai_analysis.shapes import Unusable, single_face
 
 # Landmark polygons (MediaPipe face mesh).
@@ -57,8 +59,6 @@ SEASONS = {
     "autumn": {"warmth": 1, "depth": 1, "clarity": -1},
     "winter": {"warmth": -1, "depth": 1, "clarity": 1},
 }
-# Undertone matters most in seasonal theory, so it is weighted above the other two axes.
-AXIS_WEIGHTS = {"warmth": 1.5, "depth": 1.0, "clarity": 1.0}
 
 
 @dataclass
@@ -189,14 +189,14 @@ def analyse_colour(rgb: np.ndarray) -> ColourResult:
         "depth": _squash(DEPTH_CENTRE, lightness, DEPTH_SPAN),
         "clarity": _squash(contrast + 0.8 * chroma, CLARITY_CENTRE, CLARITY_SPAN),
     }
-    raw = {
-        season: sum(AXIS_WEIGHTS[a] * sign * axes[a] for a, sign in corner.items())
-        for season, corner in SEASONS.items()
-    }
-    weights = {k: float(np.exp(2.0 * v)) for k, v in raw.items()}
-    total = sum(weights.values())
-    scores = {k: round(v / total, 3) for k, v in weights.items()}
-    winner = max(scores, key=scores.get)
+    # The twelve types (colour_types.py) refine the seasons; a season's score is the sum of its
+    # three types, so the season and the twelve-type result always agree.
+    type_scores = colour_types.scores(axes)
+    season_totals = {season: 0.0 for season in SEASONS}
+    for key, share in type_scores.items():
+        season_totals[colour_types.BY_KEY[key].season] += share
+    scores = {k: round(v, 3) for k, v in season_totals.items()}
+    winner = colour_types.BY_KEY[next(iter(type_scores))].season
     if scores[winner] < 0.45:
         notes.append("low_confidence")
     if abs(axes["warmth"]) < 0.2:

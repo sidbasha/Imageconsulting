@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 from sqlalchemy import func, select
 
+from app.modules.ai_analysis import colour_types
 from app.modules.ai_analysis import engine, previews
 from app.modules.ai_analysis.colour import analyse_colour
 from app.modules.ai_analysis.models import PhotoAnalysis
@@ -168,6 +169,10 @@ def test_analysis_api_stores_and_returns_an_indicative_result(client, db, upload
     assert len(body["profile"]["palette"]) == 6 and body["profile"]["title"]
     assert body["scores"][0]["score"] >= body["scores"][-1]["score"]
     assert set(body["swatches"]) == {"skin", "hair", "eyes"}
+    # The twelve-type reading sits inside the season the four-way result chose, or next to it.
+    twelve = body["colour_type"]
+    assert twelve["key"] in [t.key for t in colour_types.TYPES] and len(twelve["colours"]) == 30
+    assert twelve["scores"][0]["key"] == twelve["key"] and len(twelve["scores"]) == 3
     assert body["model_version"].startswith("mediapipe:")
     assert client.get(f"{API}/analysis/seasonal_color", headers=headers).json()["id"] == body["id"]
 

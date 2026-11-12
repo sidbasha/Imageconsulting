@@ -9,7 +9,7 @@ from app.core.deps import get_current_user, require_permission
 from app.core.errors import AppError, pick_language
 from app.database.session import get_db
 from app.integrations.storage import Storage, get_storage
-from app.modules.ai_analysis import engine, previews, service, tryon
+from app.modules.ai_analysis import colour_types, engine, previews, service, tryon
 from app.modules.ai_analysis.models import TryOnItem
 from app.modules.ai_analysis.shapes import Unusable
 from app.modules.assessments.router import enabled
@@ -255,3 +255,24 @@ def delete_tryon_item(item_id: uuid.UUID, _: User = Depends(require_permission("
     storage.delete(item.asset_key)
     storage.delete(item.source_key)
     db.delete(item)
+
+
+# ---------------------------------------------------------------- twelve colour types and palettes
+
+colour_types_router = APIRouter(prefix="/colour-types", tags=["colour types"], dependencies=[Depends(get_current_user)])
+
+
+@colour_types_router.get("")
+def colour_type_list(request: Request) -> list[dict]:
+    """All twelve types, each with a few signature colours, for pickers and explainers."""
+    language = pick_language(request)
+    return [{"key": t.key, "season": t.season, "dominant": t.dominant, "title": t.title.get(language, t.title["en"]),
+             "signature": colour_types.palette(t.key)["signature"]} for t in colour_types.TYPES]
+
+
+@colour_types_router.get("/{key}")
+def colour_type_detail(key: str, request: Request) -> dict:
+    """One type's full palette: neutrals, colours, lips, hair, metals and colours to avoid."""
+    if key not in colour_types.BY_KEY:
+        raise AppError(404, "not_found")
+    return colour_types.summary(key, pick_language(request))
