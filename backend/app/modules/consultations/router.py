@@ -14,8 +14,8 @@ from app.modules.ai_analysis import engine, previews
 from app.modules.ai_analysis.colour import analyse_colour
 from app.modules.ai_analysis.shapes import Unusable
 from app.modules.auth.models import User
-from app.modules.consultations import service
-from app.modules.consultations.models import Consultation, ConsultationFile, ExpertReport, ReportTemplate
+from app.modules.consultations import draping, service
+from app.modules.consultations.models import Consultation, ConsultationFile, DrapingSession, ExpertReport, ReportTemplate
 from app.modules.feature_flags.guard import enabled_features, require_feature
 from app.modules.marketplace.models import StylistProfile
 from app.modules.marketplace.service import SERVICE_FEATURES
@@ -255,12 +255,7 @@ def compare(body: CompareIn, consultation: Consultation = Depends(_stylist), db:
             raise AppError(422, "invalid_preview_request")
 
     def grid(rgb):
-        tiles = [previews.drape(rgb, c) for c in body.colours]
-        height = 420
-        tiles = [cv2.resize(t, (int(t.shape[1] * height / t.shape[0]), height)) for t in tiles]
-        rows = [np.hstack(tiles[i:i + 4]) for i in range(0, len(tiles), 4)]
-        width = max(r.shape[1] for r in rows)
-        return np.vstack([np.pad(r, ((0, 0), (0, width - r.shape[1]), (0, 0)), constant_values=255) for r in rows])
+        return previews.side_by_side(previews.drapes(rgb, body.colours), height=420)
 
     return _render(db, storage, consultation, body.file_id, grid)
 
@@ -276,6 +271,147 @@ def indicative(file_id: uuid.UUID, consultation: Consultation = Depends(_stylist
         raise AppError(422, "photo_not_analysable", {"reasons": exc.reasons}) from exc
     return {"indicative": True, "season": result.profile_key, "scores": result.scores, "axes": result.axes,
             "swatches": result.swatches, "notes": result.notes}
+
+
+# ---------------------------------------------------------------- guided draping studio and lip studio
+
+DRAPING = Depends(require_feature("phase2.digital_draping"))
+HexColour = Field(pattern=r"^#[0-9a-fA-F]{6}$")
+
+
+@workspace.get("/{consultation_id}/drape-pair", dependencies=[DRAPING])
+def drape_pair(file_id: uuid.UUID, a: str = Query(pattern=r"^#[0-9a-fA-F]{6}$"), b: str = Query(pattern=r"^#[0-9a-fA-F]{6}$"),
+               consultation: Consultation = Depends(_stylist), db: Session = Depends(get_db),
+               storage: Storage = Depends(get_storage)) -> Response:
+    """Two drapes side by side on the client's face: one photo, the face analysed once."""
+    return _render(db, storage, consultation, file_id, lambda rgb: previews.side_by_side(previews.drapes(rgb, [a, b])))
+
+
+class LipsIn(BaseModel):
+    file_id: uuid.UUID
+    colours: list[str] = Field(min_length=2, max_length=6)
+
+
+@workspace.post("/{consultation_id}/lips", dependencies=[DRAPING])
+def lip_studio(body: LipsIn, consultation: Consultation = Depends(_stylist), db: Session = Depends(get_db),
+               storage: Storage = Depends(get_storage)) -> Response:
+    """Lip colours side by side on the client's face."""
+    if not all(previews.HEX.match(c) for c in body.colours):
+        raise AppError(422, "invalid_preview_request")
+    return _render(db, storage, consultation, body.file_id,
+                   lambda rgb: previews.side_by_side(previews.lips(rgb, body.colours), per_row=3))
+
+
+class DrapingStartIn(BaseModel):
+    file_id: uuid.UUID
+
+
+class AnswerIn(BaseModel):
+    step: str = Field(pattern="^(undertone|depth|clarity|confirm)$")
+    pair: int | None = None
+    pick: str = Field(max_length=30)
+
+
+class SessionEditIn(BaseModel):
+    custom_palette: list[str] | None = Field(default=None, max_length=48)
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+def _session(db: Session, consultation: Consultation, session_id: uuid.UUID) -> DrapingSession:
+    session = db.get(DrapingSession, session_id)
+    if session is None or session.consultation_id != consultation.id:
+        raise AppError(404, "not_found")
+    return session
+
+
+def _session_out(session: DrapingSession, language: str) -> dict:
+    from app.modules.ai_analysis import colour_types
+
+    out = {"id": session.id, "file_id": session.file_id, "status": session.status, "answers": len(session.choices),
+           "created_at": session.created_at, "axes": draping.axes_from(session.choices),
+           "custom_palette": session.custom_palette, "notes": session.notes}
+    if session.status == "complete":
+        out["result"] = {"colour_type": colour_types.summary(session.colour_type, language),
+                         "scores": [{"key": k, "title": colour_types.BY_KEY[k].title.get(language, colour_types.BY_KEY[k].title["en"]),
+                                     "score": v} for k, v in session.scores]}
+    else:
+        out["next"] = draping.next_step(session.choices, language)
+    return out
+
+
+@workspace.post("/{consultation_id}/draping", status_code=status.HTTP_201_CREATED, dependencies=[DRAPING])
+def draping_start(body: DrapingStartIn, request: Request, consultation: Consultation = Depends(_stylist),
+                  db: Session = Depends(get_db)) -> dict:
+    """Start a guided draping analysis on one of the client's face photos."""
+    service.require_workspace(db, consultation)
+    item = db.get(ConsultationFile, body.file_id)
+    if item is None or item.consultation_id != consultation.id or item.purpose != "face":
+        raise AppError(404, "not_found")
+    session = DrapingSession(consultation_id=consultation.id, profile_id=consultation.profile_id,
+                             customer_id=consultation.customer_id, file_id=item.id, choices=[])
+    db.add(session)
+    db.flush()
+    db.refresh(session)
+    return _session_out(session, pick_language(request))
+
+
+@workspace.get("/{consultation_id}/draping", dependencies=[DRAPING])
+def draping_list(request: Request, consultation: Consultation = Depends(_stylist), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(DrapingSession).where(DrapingSession.consultation_id == consultation.id)
+                      .order_by(DrapingSession.created_at.desc()))
+    return [_session_out(s, pick_language(request)) for s in rows]
+
+
+@workspace.get("/{consultation_id}/draping/{session_id}", dependencies=[DRAPING])
+def draping_get(session_id: uuid.UUID, request: Request, consultation: Consultation = Depends(_stylist),
+                db: Session = Depends(get_db)) -> dict:
+    return _session_out(_session(db, consultation, session_id), pick_language(request))
+
+
+@workspace.post("/{consultation_id}/draping/{session_id}/answer", dependencies=[DRAPING])
+def draping_answer(session_id: uuid.UUID, body: AnswerIn, request: Request, consultation: Consultation = Depends(_stylist),
+                   db: Session = Depends(get_db)) -> dict:
+    """Record the consultant's pick for the comparison being shown; the answer moves the session on."""
+    session = _session(db, consultation, session_id)
+    answer = body.model_dump(exclude_none=True)
+    try:
+        draping.validate(session.choices, answer)
+    except ValueError as exc:
+        raise AppError(409, "draping_out_of_step", {"reason": str(exc)}) from exc
+    session.choices = [*session.choices, answer]
+    if draping.next_step(session.choices) is None:
+        done = draping.result(session.choices)
+        session.status, session.axes, session.colour_type = "complete", done["axes"], done["colour_type"]
+        session.scores = [[k, v] for k, v in done["scores"]]
+    db.flush()
+    return _session_out(session, pick_language(request))
+
+
+@workspace.post("/{consultation_id}/draping/{session_id}/undo", dependencies=[DRAPING])
+def draping_undo(session_id: uuid.UUID, request: Request, consultation: Consultation = Depends(_stylist),
+                 db: Session = Depends(get_db)) -> dict:
+    """Take back the last answer (also reopens a completed session)."""
+    session = _session(db, consultation, session_id)
+    if session.choices:
+        session.choices = session.choices[:-1]
+        session.status, session.axes, session.scores, session.colour_type = "in_progress", None, None, None
+    db.flush()
+    return _session_out(session, pick_language(request))
+
+
+@workspace.patch("/{consultation_id}/draping/{session_id}", dependencies=[DRAPING])
+def draping_edit(session_id: uuid.UUID, body: SessionEditIn, request: Request, consultation: Consultation = Depends(_stylist),
+                 db: Session = Depends(get_db)) -> dict:
+    """The consultant's own palette for this client, and notes."""
+    session = _session(db, consultation, session_id)
+    if body.custom_palette is not None:
+        if not all(previews.HEX.match(c) for c in body.custom_palette):
+            raise AppError(422, "invalid_palette")
+        session.custom_palette = [c.lower() for c in body.custom_palette]
+    if body.notes is not None:
+        session.notes = body.notes
+    db.flush()
+    return _session_out(session, pick_language(request))
 
 
 # ---------------------------------------------------------------- admin: report templates (56)

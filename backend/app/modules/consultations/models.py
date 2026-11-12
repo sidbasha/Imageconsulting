@@ -66,3 +66,24 @@ class WorkspaceAccess(Base, IdMixin, TimestampMixin):
     profile_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stylist_profiles.id", ondelete="CASCADE"))
     customer_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     credits_used: Mapped[int] = mapped_column(default=0)
+
+
+class DrapingSession(Base, IdMixin, TimestampMixin):
+    """One guided draping analysis of a client's face photo (consultations/draping.py).
+
+    choices: [{"step", "pair", "pick"}]; result fields fill in when the consultant
+    confirms a type. custom_palette lets the consultant adjust the client's palette.
+    """
+
+    __tablename__ = "draping_sessions"
+    consultation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("consultations.id", ondelete="CASCADE"), index=True)
+    profile_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stylist_profiles.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    file_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("consultation_files.id", ondelete="SET NULL"))
+    choices: Mapped[list] = mapped_column(JSONB, default=list)
+    status: Mapped[str] = mapped_column(String(20), default="in_progress")  # in_progress | complete
+    axes: Mapped[dict | None] = mapped_column(JSONB)
+    scores: Mapped[list | None] = mapped_column(JSONB)
+    colour_type: Mapped[str | None] = mapped_column(String(30))
+    custom_palette: Mapped[list | None] = mapped_column(JSONB)  # hex colours chosen by the consultant
+    notes: Mapped[str | None] = mapped_column(String(2000))

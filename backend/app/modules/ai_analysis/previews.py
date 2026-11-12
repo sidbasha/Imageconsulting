@@ -110,9 +110,8 @@ def makeup(rgb: np.ndarray, lip_colour: str | None, brow_colour: str | None, int
     return out
 
 
-def drape(rgb: np.ndarray, colour: str) -> np.ndarray:
-    """Covers everything below the chin that is not face, hair or background
-    with a flat fabric colour, like a draping cape."""
+def cape_mask(rgb: np.ndarray) -> np.ndarray:
+    """Everything below the chin that is not face, hair or background: where a draping cape goes."""
     face = single_face(rgb)
     chin_y = int(face.points[152, 1])
     seg = engine.models.segment(rgb)
@@ -122,5 +121,38 @@ def drape(rgb: np.ndarray, colour: str) -> np.ndarray:
         # Close crops: fall back to a band across the bottom of the photo.
         cape[:] = 0
         cape[max(chin_y + 2, int(rgb.shape[0] * 0.8)) :] = 1
-    target = parse_colour(colour)
-    return recolour(rgb, cape, target, lightness_follow=1.0, texture=0.0, feather=5)
+    return cape
+
+
+def drape(rgb: np.ndarray, colour: str, cape: np.ndarray | None = None) -> np.ndarray:
+    """Covers the area below the chin with a flat fabric colour, like a draping cape.
+    Pass a cape from cape_mask() to drape several colours on one photo without re-running the models."""
+    if cape is None:
+        cape = cape_mask(rgb)
+    return recolour(rgb, cape, parse_colour(colour), lightness_follow=1.0, texture=0.0, feather=5)
+
+
+def drapes(rgb: np.ndarray, colours: list[str]) -> list[np.ndarray]:
+    cape = cape_mask(rgb)
+    return [drape(rgb, c, cape) for c in colours]
+
+
+def lips(rgb: np.ndarray, colours: list[str], intensity: float = 0.75) -> list[np.ndarray]:
+    """The same face with each lip colour, for side-by-side comparison."""
+    pts = single_face(rgb).points[:, :2]
+    mask = _poly(rgb.shape, pts[LIPS_OUTER]) & (1 - _poly(rgb.shape, pts[LIPS_INNER]))
+    return [recolour(rgb, mask, parse_colour(c), strength=intensity, lightness_follow=0.5, texture=0.5, feather=5) for c in colours]
+
+
+def side_by_side(tiles: list[np.ndarray], height: int = 520, per_row: int = 4, gap: int = 8) -> np.ndarray:
+    """Tiles scaled to one height, laid out in rows on a white ground."""
+    tiles = [cv2.resize(t, (int(t.shape[1] * height / t.shape[0]), height), interpolation=cv2.INTER_AREA) for t in tiles]
+    rows = []
+    for i in range(0, len(tiles), per_row):
+        row = tiles[i:i + per_row]
+        spacer = np.full((height, gap, 3), 255, np.uint8)
+        parts = [p for t in row for p in (t, spacer)][:-1]
+        rows.append(np.hstack(parts))
+    width = max(r.shape[1] for r in rows)
+    padded = [np.pad(r, ((0, gap), (0, width - r.shape[1]), (0, 0)), constant_values=255) for r in rows]
+    return np.vstack(padded)[:-gap]

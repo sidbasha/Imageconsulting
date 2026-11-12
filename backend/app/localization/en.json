@@ -84,5 +84,7 @@
   "unsupported_document_type": "Please upload a JPEG, PNG or PDF file.",
   "verified_field_locked": "This detail was verified and cannot be changed.",
   "voucher_exhausted": "This offer has run out.",
-  "workspace_not_open": "Open the workspace for this client first."
+  "workspace_not_open": "Open the workspace for this client first.",
+  "draping_out_of_step": "That comparison is no longer the current one. Refresh and continue.",
+  "invalid_palette": "Each palette colour must be a hex colour such as #8e3b2c."
 }

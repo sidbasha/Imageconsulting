@@ -84,5 +84,7 @@
   "unsupported_document_type": "يرجى رفع ملف JPEG أو PNG أو PDF.",
   "verified_field_locked": "تم التحقّق من هذه المعلومة ولا يمكن تغييرها.",
   "voucher_exhausted": "نفدت هذه القسيمة.",
-  "workspace_not_open": "يرجى فتح مساحة العمل لهذه العميلة أولاً."
+  "workspace_not_open": "يرجى فتح مساحة العمل لهذه العميلة أولاً.",
+  "draping_out_of_step": "لم تعد هذه المقارنة هي الحالية. حدّثي الصفحة وتابعي.",
+  "invalid_palette": "يجب أن يكون كل لون في اللوحة بصيغة سداسية مثل ‎#8e3b2c."
 }

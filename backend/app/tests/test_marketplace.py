@@ -326,6 +326,68 @@ def test_colour_workspace_meters_credits_and_drapes(client, owner, customer, pha
     assert {"temperature", "contrast", "metals", "palette"} <= {s["key"] for s in template["sections"]}
 
 
+def _open_workspace(client, owner, customer):
+    stylist = make_stylist(client, owner, kinds=("expert_color",))
+    book_and_pay(client, customer, stylist, "expert_color")
+    consultation = client.get(f"{API}/consultations", headers=customer).json()[0]
+    face = client.post(f"{API}/consultations/{consultation['id']}/files", data={"purpose": "face", "consent": "true"},
+                       files={"file": ("f.jpg", FACE_JPEG, "image/jpeg")}, headers=customer).json()
+    pay(client, client.post(f"{API}/checkout/product", json={"product_key": "credits.workspace.10"}, headers=stylist["headers"]).json())
+    assert client.post(f"{API}/workspace/{consultation['id']}/open", headers=stylist["headers"]).status_code == 200
+    return stylist["headers"], consultation["id"], face["id"]
+
+
+def test_guided_draping_studio_walks_the_steps_to_a_type(client, owner, customer, phase2, storage):
+    headers, cid, face = _open_workspace(client, owner, customer)
+    base = f"{API}/workspace/{cid}"
+    assert client.post(f"{base}/draping", json={"file_id": face}, headers=customer).status_code == 403
+
+    session = client.post(f"{base}/draping", json={"file_id": face}, headers=headers)
+    assert session.status_code == 201, session.text
+    session = session.json()
+    step = session["next"]
+    assert step["step"] == "undertone" and step["number"] == 1 and step["labels"] == {"a": "Warm", "b": "Cool"}
+    pair = client.get(f"{base}/drape-pair", params={"file_id": face, "a": step["pair"]["a"], "b": step["pair"]["b"]}, headers=headers)
+    assert pair.status_code == 200 and pair.content[:2] == b"\xff\xd8"
+
+    # Answering a pair that is not being shown is refused.
+    wrong = client.post(f"{base}/draping/{session['id']}/answer", json={"step": "depth", "pair": 0, "pick": "a"}, headers=headers)
+    assert wrong.status_code == 409 and wrong.json()["error"]["code"] == "draping_out_of_step"
+
+    # A warm, deep, soft client.
+    picks = {"undertone": "a", "depth": "a", "clarity": "b"}
+    seen = []
+    while session["status"] == "in_progress" and session["next"]["step"] != "confirm":
+        step = session["next"]
+        seen.append(step["step"])
+        session = client.post(f"{base}/draping/{session['id']}/answer",
+                              json={"step": step["step"], "pair": step["pair"]["index"], "pick": picks[step["step"]]}, headers=headers).json()
+    assert seen == ["undertone"] * 5 + ["depth"] * 3 + ["clarity"] * 3
+    assert session["axes"] == {"warmth": 1.0, "depth": 1.0, "clarity": -1.0}
+    options = session["next"]["options"]
+    assert [o["key"] for o in options][:1] == ["warm_autumn"] and all(len(o["drapes"]) == 4 for o in options)
+    assert {o["key"] for o in options} <= {"warm_autumn", "deep_autumn", "soft_autumn"}
+
+    # Undo, redo, then the consultant picks the second candidate: her call is the result.
+    session = client.post(f"{base}/draping/{session['id']}/undo", headers=headers).json()
+    assert session["next"]["step"] == "clarity"
+    session = client.post(f"{base}/draping/{session['id']}/answer", json={"step": "clarity", "pair": 2, "pick": "b"}, headers=headers).json()
+    bad = client.post(f"{base}/draping/{session['id']}/answer", json={"step": "confirm", "pick": "cool_winter"}, headers=headers)
+    assert bad.status_code == 409
+    done = client.post(f"{base}/draping/{session['id']}/answer", json={"step": "confirm", "pick": "deep_autumn"}, headers=headers).json()
+    assert done["status"] == "complete" and done["result"]["colour_type"]["key"] == "deep_autumn"
+    assert done["result"]["scores"][0]["key"] == "warm_autumn" and len(done["result"]["colour_type"]["colours"]) == 30
+
+    edited = client.patch(f"{base}/draping/{session['id']}", json={"custom_palette": ["#8E3B2C", "#1f5f5b"], "notes": "Rust lifts her skin."},
+                          headers=headers).json()
+    assert edited["custom_palette"] == ["#8e3b2c", "#1f5f5b"] and edited["notes"] == "Rust lifts her skin."
+    assert client.patch(f"{base}/draping/{session['id']}", json={"custom_palette": ["red"]}, headers=headers).status_code == 422
+    assert [s["id"] for s in client.get(f"{base}/draping", headers=headers).json()] == [session["id"]]
+
+    lips = client.post(f"{base}/lips", json={"file_id": face, "colours": ["#b75842", "#a8464a", "#c49394"]}, headers=headers)
+    assert lips.status_code == 200 and lips.content[:2] == b"\xff\xd8"
+
+
 # ---------- rewards (43, 44) ----------
 
 def test_points_are_earned_and_redeemed_for_a_free_consultation(client, owner, customer, phase2, db):
