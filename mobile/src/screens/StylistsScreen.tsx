@@ -64,7 +64,7 @@ export function StylistsScreen({ route, navigation }: Props) {
             <Pressable accessibilityRole="button" accessibilityLabel={near ? t('stylists.anywhere') : t('stylists.nearMe')} onPress={toggleNear}
               testID="near-me" style={({ pressed }) => [styles.nearPill, near && styles.nearPillOn, { boxShadow: shadows.soft }, pressed && styles.pressed]}>
               {locating ? <ActivityIndicator color={colors.primary} /> : (
-                <Text style={[styles.nearText, near && styles.nearTextOn]}>{near ? t('stylists.anywhere') : `📍 ${t('stylists.nearMe')}`}</Text>
+                <Text style={[styles.nearText, near && styles.nearTextOn]}>{near ? t('stylists.anywhere') : `${t('stylists.nearMe')}`}</Text>
               )}
             </Pressable>
           ) : null}
@@ -89,7 +89,7 @@ export function StylistsScreen({ route, navigation }: Props) {
                 <View style={styles.flex}>
                   <AppText variant="heading" style={styles.name}>{s.display_name}</AppText>
                   <Row style={styles.meta}>
-                    {s.city ? <AppText variant="small" muted>{`📍 ${s.city}`}</AppText> : null}
+                    {s.city ? <AppText variant="small" muted>{s.city}</AppText> : null}
                     {s.distance_km !== null ? <AppText variant="small" muted>{t('stylists.distance', { km: s.distance_km })}</AppText> : null}
                   </Row>
                   <Rating value={s.rating_avg} count={s.rating_count} />

@@ -12,7 +12,7 @@ import { useApp } from '../contexts/AppContext';
 import { visibleSections, type Target } from '../navigation/registry';
 import { colors, fonts, gradients, radius, shadows, spacing } from '../theme';
 import { AppText, Avatar, LanguageSwitch, Row, useDirection } from './ui';
-import { ENTRY_ICONS } from './entryIcons';
+import { EntryIcon } from './Icon';
 
 export function TopBar({ onMenu }: { onMenu: () => void }) {
   const { t } = useTranslation();
@@ -80,7 +80,7 @@ export function Menu({ visible, onClose }: { visible: boolean; onClose: () => vo
                   onPress={() => entry.target && open(entry.target)}
                   style={({ pressed }) => [styles.panelItem, pressed && styles.panelItemPressed]}>
                   <Row style={styles.panelItemRow}>
-                    <Text style={styles.panelIcon}>{ENTRY_ICONS[entry.id] ?? '✦'}</Text>
+                    <View style={styles.panelIcon}><EntryIcon id={entry.id} size={20} color={colors.primary} /></View>
                     <AppText style={styles.flex}>{t(`entries.${entry.id}`)}</AppText>
                   </Row>
                 </Pressable>
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   panelItem: { borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: spacing.sm },
   panelItemPressed: { backgroundColor: colors.primarySoft },
   panelItemRow: { gap: spacing.md, alignItems: 'center' },
-  panelIcon: { fontSize: 18, width: 26, textAlign: 'center' },
+  panelIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
   panelFoot: { gap: spacing.md, marginTop: spacing.sm },
   signOut: { paddingVertical: spacing.sm },
   signOutText: { color: colors.primary, fontWeight: '700', fontSize: 16 },

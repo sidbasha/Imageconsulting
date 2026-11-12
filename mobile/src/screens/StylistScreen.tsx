@@ -92,7 +92,7 @@ export function StylistScreen({ route, navigation }: Props) {
               <View style={styles.orb} />
               <Avatar name={data.display_name} size={84} />
               <AppText variant="title" accessibilityRole="header" style={styles.heroName}>{data.display_name}</AppText>
-              {data.city ? <Text style={styles.heroCity}>{`📍 ${data.city}`}</Text> : null}
+              {data.city ? <Text style={styles.heroCity}>{data.city}</Text> : null}
               <Row style={styles.stats}>
                 <Stat value={data.rating_count ? `★ ${data.rating_avg.toFixed(1)}` : '—'} label={t('stylists.reviews', { count: data.rating_count })} />
                 <View style={styles.statLine} />

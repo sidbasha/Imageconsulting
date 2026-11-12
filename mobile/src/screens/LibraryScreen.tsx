@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
 import type { Checkout, Product } from '../api/client';
 import { AppText, Button, Card, ErrorBanner, Row, Screen, ScreenHeader, Tag, money } from '../components/ui';
+import { Icon } from '../components/Icon';
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
 import { colors, spacing } from '../theme';
@@ -54,7 +55,7 @@ export function LibraryScreen({ route, navigation }: Props) {
           <Card key={p.key}>
             <Row style={styles.row}>
               <View style={[styles.bubble, { backgroundColor: p.kind === 'report' ? colors.lilac : p.is_free ? colors.goldSoft : colors.primarySoft }]}>
-                <Text style={styles.icon}>{p.kind === 'report' ? '📜' : p.key.includes('palette') || p.key.includes('lip') ? '🎨' : '📖'}</Text>
+                <Icon name={p.kind === 'report' ? 'file' : p.key.includes('palette') || p.key.includes('lip') ? 'palette' : 'book'} color={colors.primary} />
               </View>
               <View style={styles.flex}>
                 <AppText variant="heading">{p.title}</AppText>
@@ -93,5 +94,4 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, gap: spacing.md },
   row: { gap: spacing.md, alignItems: 'center' },
   bubble: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  icon: { fontSize: 22 },
 });

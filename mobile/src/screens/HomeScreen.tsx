@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
 import { Menu, TopBar } from '../components/AppChrome';
-import { ENTRY_ICONS } from '../components/entryIcons';
+import { EntryIcon, Flourish, Icon, type IconName } from '../components/Icon';
 import { AppText, Avatar, Button, ErrorBanner, Rating, Row, Screen, useDirection } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import { ENTRIES, visibleSections, type Entry, type Group, type Target } from '../navigation/registry';
@@ -15,13 +15,16 @@ import { useLoad } from './useLoad';
 const CARD_WIDTH = Math.min(Dimensions.get('window').width - spacing.lg * 2 - 28, 340);
 
 // Large feature cards, shown when their feature is in the active release.
-const FEATURED: { id: string; feature: string; gradient: string; icon: string; target: Target }[] = [
-  { id: 'colours', feature: 'phase1.seasonal_color', gradient: gradients.hero, icon: '🎨', target: { screen: 'PhotoAnalysis', params: { kind: 'seasonal_color' } } },
-  { id: 'tryOn', feature: 'phase1.virtual_tryon', gradient: gradients.plum, icon: '👗', target: { screen: 'TryOn', params: { kind: 'garment' } } },
-  { id: 'stylist', feature: 'phase2.stylist_discovery', gradient: gradients.dusk, icon: '👩‍🎨', target: { screen: 'Stylists' } },
-  { id: 'style', feature: 'phase1.style_assessment', gradient: gradients.champagne, icon: '✨', target: { screen: 'Assessment', params: { key: 'style' } } },
+const FEATURED: { id: string; feature: string; gradient: string; icon: IconName; target: Target }[] = [
+  { id: 'colours', feature: 'phase1.seasonal_color', gradient: gradients.hero, icon: 'palette', target: { screen: 'PhotoAnalysis', params: { kind: 'seasonal_color' } } },
+  { id: 'tryOn', feature: 'phase1.virtual_tryon', gradient: gradients.plum, icon: 'shirt', target: { screen: 'TryOn', params: { kind: 'garment' } } },
+  { id: 'stylist', feature: 'phase2.stylist_discovery', gradient: gradients.dusk, icon: 'user-search', target: { screen: 'Stylists' } },
+  { id: 'style', feature: 'phase1.style_assessment', gradient: gradients.champagne, icon: 'sparkles', target: { screen: 'Assessment', params: { key: 'style' } } },
 ];
 const QUICK = ['photoAssessment', 'hairStyles', 'outfits', 'bookings', 'messages', 'rewards', 'guides'];
+const TONES: Record<Group, string> = {
+  assessment: '#A23E66', recommendations: '#6F4A8E', experts: '#B5603F', library: '#8A6638', shop: '#2F6B4F', account: '#A23E66',
+};
 const BUBBLES: Record<Group, string> = {
   assessment: colors.primarySoft, recommendations: colors.lilac, experts: colors.peach,
   library: colors.goldSoft, shop: colors.sage, account: colors.primarySoft,
@@ -73,7 +76,7 @@ export function HomeScreen() {
         </View>
 
         <View style={[styles.search, { boxShadow: shadows.soft }]}>
-          <Text style={styles.searchIcon}>⌕</Text>
+          <Icon name="search" size={20} color={colors.primary} />
           <TextInput value={query} onChangeText={setQuery} placeholder={t('home.search')} placeholderTextColor={colors.muted}
             accessibilityLabel={t('home.search')} testID="home-search" style={styles.searchInput} />
         </View>
@@ -93,7 +96,7 @@ export function HomeScreen() {
             {found.map(entry => (
               <Pressable key={entry.id} accessibilityRole="button" testID={`found-${entry.id}`} onPress={() => entry.target && open(entry.target)}
                 style={[styles.found, { boxShadow: shadows.soft }]}>
-                <Text style={styles.icon}>{ENTRY_ICONS[entry.id] ?? '✦'}</Text>
+                <EntryIcon id={entry.id} color={colors.primary} />
                 <Text style={styles.foundText}>{t(`entries.${entry.id}`)}</Text>
               </Pressable>
             ))}
@@ -107,9 +110,11 @@ export function HomeScreen() {
                   <Pressable key={card.id} accessibilityRole="button" accessibilityLabel={t(`home.featured.${card.id}.title`)} testID={`featured-${card.id}`}
                     onPress={() => open(card.target)}
                     style={({ pressed }) => [styles.feature, { width: CARD_WIDTH, backgroundImage: card.gradient, boxShadow: shadows.lifted }, pressed && styles.pressed]}>
-                    <View style={styles.orbLarge} />
+                    <Flourish />
                     <View style={styles.orbSmall} />
-                    <Text style={styles.featureIcon}>{card.icon}</Text>
+                    <View style={styles.featureGlass}>
+                      <Icon name={card.icon} size={26} color={colors.onPrimary} strokeWidth={1.4} />
+                    </View>
                     <View style={styles.featureText}>
                       <Text style={styles.featureKicker}>{t(`home.featured.${card.id}.kicker`)}</Text>
                       <Text style={styles.featureTitle}>{t(`home.featured.${card.id}.title`)}</Text>
@@ -155,7 +160,7 @@ export function HomeScreen() {
                     onPress={() => entry.target && open(entry.target)} style={({ pressed }) => [styles.quick, pressed && styles.pressed]}>
                     <View style={[styles.quickRing, { backgroundImage: gradients.hero }]}>
                       <View style={styles.quickInner}>
-                        <Text style={styles.quickIcon}>{ENTRY_ICONS[entry.id]}</Text>
+                        <EntryIcon id={entry.id} size={24} color={colors.primary} strokeWidth={1.5} />
                       </View>
                     </View>
                     <Text style={styles.quickLabel} numberOfLines={1}>{t(`home.quick.${entry.id}`)}</Text>
@@ -229,10 +234,10 @@ function EntryCard({ entry, onOpen }: { entry: Entry; onOpen: (target: Target) =
       style={({ pressed }) => [styles.card, { boxShadow: shadows.soft, backgroundImage: gradients.card }, pressed && styles.pressed]}>
       <Row style={styles.cardRow}>
         <View style={[styles.bubble, { backgroundColor: BUBBLES[entry.group] }]}>
-          <Text style={styles.icon}>{ENTRY_ICONS[entry.id] ?? '✦'}</Text>
+          <EntryIcon id={entry.id} color={TONES[entry.group]} />
         </View>
         <View style={styles.flex} />
-        <Text style={styles.arrow}>{rtl ? '↖' : '↗'}</Text>
+        <Icon name={rtl ? 'arrow-up-left' : 'arrow-up-right'} size={18} color={colors.gold} />
       </Row>
       <AppText style={styles.cardLabel} numberOfLines={2}>
         {label}
@@ -255,10 +260,11 @@ const styles = StyleSheet.create({
   found: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md },
   foundText: { fontSize: 16, color: colors.text, fontWeight: '600' },
   carousel: { gap: 14, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
-  feature: { height: 196, borderRadius: radius.xl, padding: spacing.lg, overflow: 'hidden', justifyContent: 'flex-end' },
+  feature: { height: 216, borderRadius: radius.xl, padding: spacing.lg, overflow: 'hidden', justifyContent: 'flex-end' },
   orbLarge: { position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(255,255,255,0.13)', top: -80, right: -60 },
   orbSmall: { position: 'absolute', width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.10)', bottom: -40, left: -30 },
-  featureIcon: { position: 'absolute', top: 18, right: 20, fontSize: 44 },
+  featureGlass: { position: 'absolute', top: 18, left: 20, width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)' },
   featureText: { gap: 6, alignItems: 'flex-start' },
   featureKicker: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '700', letterSpacing: 1.8, textTransform: 'uppercase' },
   featureTitle: { color: colors.onPrimary, fontFamily: fonts.display, fontSize: 25, lineHeight: 31, fontWeight: '700', maxWidth: '72%' },

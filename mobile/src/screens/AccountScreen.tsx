@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
 import { Menu, TopBar } from '../components/AppChrome';
-import { ENTRY_ICONS } from '../components/entryIcons';
+import { EntryIcon, Flourish, Icon } from '../components/Icon';
 import { AppText, Avatar, LanguageSwitch, Row, Screen, useDirection } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import { visibleSections } from '../navigation/registry';
@@ -19,15 +19,15 @@ export function AccountScreen() {
   const [menu, setMenu] = useState(false);
   const entries = visibleSections(features ?? []).find(s => s.group === 'account')?.entries ?? [];
   const items = [
-    ...entries.map(e => ({ id: e.id, label: t(`entries.${e.id}`), icon: ENTRY_ICONS[e.id] ?? '✦', go: () => e.target && navigation.navigate(e.target.screen, e.target.params) })),
-    { id: 'settings', label: t('home.settings'), icon: '⚙️', go: () => navigation.navigate('Settings') },
+    ...entries.map(e => ({ id: e.id, label: t(`entries.${e.id}`), go: () => e.target && navigation.navigate(e.target.screen, e.target.params) })),
+    { id: 'settings', label: t('home.settings'), go: () => navigation.navigate('Settings') },
   ];
   return (
     <Screen testID="account">
       <ScrollView contentContainerStyle={styles.content}>
         <TopBar onMenu={() => setMenu(true)} />
         <View style={[styles.card, { backgroundImage: gradients.hero, boxShadow: shadows.lifted }]}>
-          <View style={styles.orb} />
+          <Flourish />
           <Avatar name={user?.full_name ?? '?'} size={76} />
           <Text style={styles.name}>{user?.full_name}</Text>
           <Text style={styles.email}>{user?.email}</Text>
@@ -37,7 +37,9 @@ export function AccountScreen() {
             <Pressable key={item.id} accessibilityRole="button" testID={`me-${item.id}`} onPress={item.go}
               style={({ pressed }) => [styles.item, i > 0 && styles.itemBorder, pressed && styles.pressed]}>
               <Row style={styles.row}>
-                <View style={styles.bubble}><Text style={styles.icon}>{item.icon}</Text></View>
+                <View style={styles.bubble}>
+                  {item.id === 'settings' ? <Icon name="settings" size={19} color={colors.primary} /> : <EntryIcon id={item.id} size={19} color={colors.primary} />}
+                </View>
                 <AppText style={styles.flex}>{item.label}</AppText>
                 <Text style={styles.chev}>{rtl ? '‹' : '›'}</Text>
               </Row>

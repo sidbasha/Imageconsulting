@@ -4,12 +4,15 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
 import { Menu, TopBar } from '../components/AppChrome';
-import { ENTRY_ICONS } from '../components/entryIcons';
+import { EntryIcon, Flourish } from '../components/Icon';
 import { AppText, Row, Screen } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import { visibleSections, type Group } from '../navigation/registry';
 import { colors, gradients, radius, shadows, spacing } from '../theme';
 
+const TONES: Record<Group, string> = {
+  assessment: '#A23E66', recommendations: '#6F4A8E', experts: '#B5603F', library: '#8A6638', shop: '#2F6B4F', account: '#A23E66',
+};
 const BUBBLES: Record<Group, string> = {
   assessment: colors.primarySoft, recommendations: colors.lilac, experts: colors.peach,
   library: colors.goldSoft, shop: colors.sage, account: colors.primarySoft,
@@ -41,8 +44,9 @@ export function HubScreen({ tab, groups }: { tab: string; groups: Group[] }) {
                     onPress={() => entry.target && navigation.navigate(entry.target.screen, entry.target.params)}
                     style={({ pressed }) => [styles.tile, wide && styles.tileWide, { boxShadow: shadows.soft, backgroundImage: wide ? gradients.hero : gradients.card },
                       pressed && styles.pressed]}>
+                    {wide ? <Flourish size={190} /> : null}
                     <View style={[styles.bubble, wide ? styles.bubbleWide : { backgroundColor: BUBBLES[section.group] }]}>
-                      <Text style={styles.icon}>{ENTRY_ICONS[entry.id] ?? '✦'}</Text>
+                      <EntryIcon id={entry.id} color={wide ? colors.onPrimary : TONES[section.group]} />
                     </View>
                     <AppText style={[styles.label, wide && styles.labelWide]} numberOfLines={2}>{t(`entries.${entry.id}`)}</AppText>
                   </Pressable>
@@ -65,7 +69,7 @@ const styles = StyleSheet.create({
   grid: { gap: 12, flexWrap: 'wrap' },
   tile: { width: '47%', flexGrow: 1, minHeight: 128, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm, backgroundColor: colors.surface,
     borderWidth: 1, borderColor: 'rgba(239, 226, 226, 0.7)', justifyContent: 'space-between' },
-  tileWide: { width: '100%', minHeight: 110, borderWidth: 0 },
+  tileWide: { width: '100%', minHeight: 120, borderWidth: 0, overflow: 'hidden' },
   pressed: { transform: [{ scale: 0.97 }] },
   bubble: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   bubbleWide: { backgroundColor: 'rgba(255,255,255,0.22)' },

@@ -8,6 +8,7 @@ import { createBottomTabNavigator, type BottomTabBarProps } from '@react-navigat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
+import { Icon, type IconName } from '../components/Icon';
 import { useDirection } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import { AccountScreen } from '../screens/AccountScreen';
@@ -24,7 +25,7 @@ const TAB_GROUPS: Record<'Style' | 'Experts' | 'Shop', Group[]> = {
   Experts: ['experts'],
   Shop: ['library', 'shop'],
 };
-const ICONS: Record<keyof TabParams, string> = { Today: '⌂', Style: '✦', Experts: '❀', Shop: '◇', Me: '◎' };
+const ICONS: Record<keyof TabParams, IconName> = { Today: 'house', Style: 'sparkles', Experts: 'flower', Shop: 'bag', Me: 'user' };
 
 const StyleHub = () => <HubScreen tab="Style" groups={TAB_GROUPS.Style} />;
 const ExpertsHub = () => <HubScreen tab="Experts" groups={TAB_GROUPS.Experts} />;
@@ -67,7 +68,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
                 }
               }}
               style={[styles.item, focused && [styles.itemOn, { backgroundImage: gradients.primary }]]}>
-              <Text style={[styles.icon, focused && styles.iconOn]}>{ICONS[name]}</Text>
+              <Icon name={ICONS[name]} size={21} color={focused ? colors.onPrimary : colors.muted} strokeWidth={focused ? 2 : 1.6} />
               {focused ? <Text style={styles.label} numberOfLines={1}>{t(`tabs.${name}`)}</Text> : null}
             </Pressable>
           );
@@ -83,7 +84,5 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between', borderWidth: 1, borderColor: 'rgba(239, 226, 226, 0.9)' },
   item: { height: 48, minWidth: 48, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 12 },
   itemOn: { paddingHorizontal: 16 },
-  icon: { fontSize: 20, color: colors.muted },
-  iconOn: { color: colors.onPrimary },
   label: { color: colors.onPrimary, fontWeight: '700', fontSize: 13 },
 });
