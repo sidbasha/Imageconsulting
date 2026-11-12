@@ -8,7 +8,7 @@ from app.integrations.storage import LocalStorage, get_storage
 from app.modules.assessments import content
 from app.modules.assessments.models import Assessment, AssessmentImage, Questionnaire
 from app.modules.image_processing import quality
-from app.tests.conftest import login
+from app.tests.conftest import ELIGIBLE, login
 
 API = "/api/v1"
 STYLE_ROMANTIC = {"line": "curved", "shape": "fitted", "colour": "pastels", "texture": "delicate", "pattern": "floral"}
@@ -20,7 +20,7 @@ def answer(client, headers, key, answers):
 
 
 def english(client):
-    client.post(f"{API}/auth/register", json={"email": "en@example.com", "password": "a-long-enough-password", "full_name": "En"})
+    client.post(f"{API}/auth/register", json={"email": "en@example.com", "password": "a-long-enough-password", "full_name": "En", **ELIGIBLE})
     return login_as(client, "en@example.com", "a-long-enough-password")
 
 

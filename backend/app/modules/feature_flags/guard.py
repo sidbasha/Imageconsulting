@@ -36,3 +36,8 @@ def require_feature(key: str):
             raise AppError(404, "feature_not_available")
 
     return dependency
+
+
+def enabled_features(current: dict = Depends(request_release)) -> set[str]:
+    """Every feature key switched on for this request's release."""
+    return service.effective_keys(current["snapshot"])

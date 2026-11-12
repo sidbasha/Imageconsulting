@@ -4,6 +4,7 @@
     python -m app.cli create-superadmin --email you@example.com --name "Your Name"
     python -m app.cli apply-due          # run from cron/Celery beat every minute
     python -m app.cli fetch-models       # download and verify the photo-analysis models
+    python -m app.cli renew-subscriptions  # run daily: expire or open renewal orders
 """
 
 import argparse
@@ -22,6 +23,7 @@ def main() -> None:
     commands.add_parser("seed")
     commands.add_parser("apply-due")
     commands.add_parser("fetch-models")
+    commands.add_parser("renew-subscriptions")
     admin = commands.add_parser("create-superadmin")
     admin.add_argument("--email", required=True)
     admin.add_argument("--name", required=True)
@@ -38,6 +40,11 @@ def main() -> None:
         if args.command == "seed":
             seed(db)
             print("Seed complete.")
+        elif args.command == "renew-subscriptions":
+            from app.integrations.payments import get_payments
+            from app.modules.commerce.service import renew_due
+
+            print(renew_due(db, get_payments()))
         elif args.command == "apply-due":
             print(f"Activated {release_service.apply_due(db)} scheduled release(s).")
         elif args.command == "create-superadmin":

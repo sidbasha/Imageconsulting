@@ -5,6 +5,8 @@ from app.core.deps import get_current_user
 from app.database.session import get_db
 from app.modules.auth import service
 from app.modules.auth.models import User
+from app.modules.feature_flags.guard import enabled_features
+from app.modules.users import service as users_service
 from app.modules.auth.schemas import LoginIn, RefreshIn, RegisterIn, TokenOut, UserOut, UserUpdateIn
 
 router = APIRouter()
@@ -21,9 +23,12 @@ def _user_out(user: User) -> UserOut:
 
 
 @router.post("/auth/register", response_model=TokenOut, status_code=status.HTTP_201_CREATED, tags=["auth"])
-def register(body: RegisterIn, db: Session = Depends(get_db)) -> TokenOut:
+def register(body: RegisterIn, db: Session = Depends(get_db), on: set[str] = Depends(enabled_features)) -> TokenOut:
     user = service.create_user(
         db, email=body.email, password=body.password, full_name=body.full_name, language=body.preferred_language
+    )
+    users_service.update_profile(
+        db, user, on, date_of_birth=body.date_of_birth, gender=body.gender, country_code=body.country_code
     )
     return service.issue_tokens(db, user)
 

@@ -13,10 +13,11 @@ from app.integrations.storage import Storage, get_storage
 from app.modules.assessments import service
 from app.modules.assessments.models import AssessmentImage, Questionnaire
 from app.modules.auth.models import User
-from app.modules.feature_flags.guard import request_release, require_feature
-from app.modules.phase_management.service import effective_keys
+from app.modules.feature_flags.guard import enabled_features, require_feature
+from app.modules.users.deps import eligible_user
 
-router = APIRouter()
+# Customer features: closed to customers who do not meet the eligibility rules.
+router = APIRouter(dependencies=[Depends(eligible_user)])
 
 
 class AnswersIn(BaseModel):
@@ -35,8 +36,7 @@ class ImageOut(BaseModel):
     created_at: datetime
 
 
-def enabled(current: dict = Depends(request_release)) -> set[str]:
-    return effective_keys(current["snapshot"])
+enabled = enabled_features
 
 
 @router.get("/assessments", tags=["assessments"])
@@ -104,7 +104,7 @@ def recommendations(
 images = APIRouter(
     prefix="/assessment-images",
     tags=["assessment-images"],
-    dependencies=[Depends(require_feature("phase1.photo_assessment"))],
+    dependencies=[Depends(require_feature("phase1.photo_assessment")), Depends(eligible_user)],
 )
 
 

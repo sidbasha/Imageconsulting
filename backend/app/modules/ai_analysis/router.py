@@ -13,8 +13,9 @@ from app.modules.ai_analysis.shapes import Unusable
 from app.modules.assessments.router import enabled
 from app.modules.auth.models import User
 from app.modules.feature_flags.guard import require_feature
+from app.modules.users.deps import eligible_user
 
-router = APIRouter(prefix="/analysis", tags=["photo-analysis"])
+router = APIRouter(prefix="/analysis", tags=["photo-analysis"], dependencies=[Depends(eligible_user)])
 
 
 class AnalyseIn(BaseModel):
@@ -79,7 +80,7 @@ def _render(db, storage, user, image_id, needs: str, draw) -> Response:
     return Response(engine.encode_jpeg(out), media_type="image/jpeg", headers={"Cache-Control": "no-store"})
 
 
-previews_router = APIRouter(prefix="/previews", tags=["previews"], dependencies=[Depends(require_feature("phase1.photo_assessment"))])
+previews_router = APIRouter(prefix="/previews", tags=["previews"], dependencies=[Depends(require_feature("phase1.photo_assessment")), Depends(eligible_user)])
 
 
 @previews_router.post("/hair-colour", dependencies=[Depends(require_feature("phase1.hair_preview"))], response_class=Response)

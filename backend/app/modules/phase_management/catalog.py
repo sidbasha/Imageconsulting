@@ -147,4 +147,16 @@ ROLES = [
 PERMISSIONS = {
     "release.view": ["super_admin"],
     "release.manage": ["super_admin"],
+    # Supporting administration, Feature List rows 53-60 (inferred by the vendor,
+    # not confirmed by the client). Role assignment is a proposal.
+    "users.review": ["super_admin", "admin", "support_manager"],  # row 53: eligibility and identity
+    "stylists.review": ["super_admin", "admin", "stylist_manager"],  # rows 53, 54: applications, credentials
+    "pricing.manage": ["super_admin", "admin", "finance_manager"],  # row 55: plans, prices, entitlements
+    "orders.manage": ["super_admin", "admin", "finance_manager"],  # fulfilment and refunds
+    "content.manage": ["super_admin", "admin", "content_manager"],  # rows 56, 57: report templates, guides, retail links
+    "moderation.manage": ["super_admin", "admin", "support_manager"],  # row 58
+    "rewards.manage": ["super_admin", "admin", "finance_manager"],  # row 59
+    "promotions.manage": ["super_admin", "admin", "content_manager"],  # row 60
+    "settings.manage": ["super_admin", "admin"],  # policy values awaiting client decisions
+    "stylist.practice": ["stylist"],  # a verified stylist's own tools
 }

@@ -19,6 +19,8 @@ from app.modules.feature_flags.guard import require_feature  # noqa: E402
 from app.modules.phase_management.seed import seed  # noqa: E402
 
 PASSWORD = "correct-horse-battery"
+# Eligibility facts for a test customer: an adult woman in the UAE.
+ELIGIBLE = {"date_of_birth": "1990-05-01", "gender": "female", "country_code": "AE"}
 ADMIN = "/api/v1/admin/phase-management"
 
 # Business modules arrive in later milestones. Until then these test-only
@@ -53,10 +55,21 @@ def _fresh_data(_schema):
         auth_service.create_user(
             db, email="client-admin@example.com", password=PASSWORD, full_name="Client Admin", role_key="admin"
         )
-        auth_service.create_user(
+        customer = auth_service.create_user(
             db, email="customer@example.com", password=PASSWORD, full_name="Customer", language="ar"
         )
+        make_eligible(db, customer)
         db.commit()
+
+
+def make_eligible(db, user):
+    from datetime import date
+
+    from app.modules.users.models import CustomerProfile
+
+    db.add(CustomerProfile(user_id=user.id, date_of_birth=date(1990, 5, 1), gender="female", country_code="AE",
+                           eligibility_status="eligible", eligibility_reasons=[]))
+    db.flush()
 
 
 @pytest.fixture
