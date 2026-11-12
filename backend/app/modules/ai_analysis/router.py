@@ -10,7 +10,7 @@ from app.core.errors import AppError, pick_language
 from app.database.session import get_db
 from app.integrations.storage import Storage, get_storage
 from app.modules.ai_analysis import colour_types, engine, previews, service, tryon
-from app.modules.ai_analysis.models import TryOnItem
+from app.modules.ai_analysis.models import SelfDraping, TryOnItem
 from app.modules.ai_analysis.shapes import Unusable
 from app.modules.assessments.router import enabled
 from app.modules.assessments.service import tr
@@ -276,3 +276,144 @@ def colour_type_detail(key: str, request: Request) -> dict:
     if key not in colour_types.BY_KEY:
         raise AppError(404, "not_found")
     return colour_types.summary(key, pick_language(request))
+
+
+# ---------------------------------------------------------------- self draping and "my palette" (customer)
+
+self_draping = APIRouter(prefix="/my-draping", tags=["self draping"],
+                         dependencies=[Depends(require_feature("phase1.seasonal_color")), Depends(eligible_user)])
+
+
+class SelfDrapingIn(BaseModel):
+    image_id: uuid.UUID
+
+
+class SelfAnswerIn(BaseModel):
+    step: str = Field(pattern="^(undertone|depth|clarity|confirm)$")
+    pair: int | None = None
+    pick: str = Field(max_length=30)
+
+
+def _self_out(s: SelfDraping, language: str) -> dict:
+    from app.modules.consultations import draping
+
+    out = {"id": s.id, "file_id": s.image_id, "status": s.status, "answers": len(s.choices), "created_at": s.created_at,
+           "axes": draping.axes_from(s.choices), "custom_palette": None, "notes": None}
+    if s.status == "complete":
+        out["result"] = {"colour_type": colour_types.summary(s.colour_type, language),
+                         "scores": [{"key": k, "title": tr(colour_types.BY_KEY[k].title, language), "score": v} for k, v in s.scores]}
+    else:
+        out["next"] = draping.next_step(s.choices, language)
+    return out
+
+
+def _own_session(db: Session, user: User, session_id: uuid.UUID) -> SelfDraping:
+    s = db.get(SelfDraping, session_id)
+    if s is None or s.user_id != user.id:
+        raise AppError(404, "not_found")
+    return s
+
+
+@self_draping.get("/drape-pair")
+def self_drape_pair(image_id: uuid.UUID, a: str = Query(pattern=r"^#[0-9a-fA-F]{6}$"), b: str = Query(pattern=r"^#[0-9a-fA-F]{6}$"),
+                    user: User = Depends(get_current_user), db: Session = Depends(get_db), storage: Storage = Depends(get_storage)) -> Response:
+    """Two drapes side by side on her own face photo."""
+    return _render(db, storage, user, image_id, "face", lambda rgb: previews.side_by_side(previews.drapes(rgb, [a, b])))
+
+
+class SelfCompareIn(BaseModel):
+    image_id: uuid.UUID
+    colours: list[str] = Field(min_length=2, max_length=4)
+
+
+@self_draping.post("/compare")
+def self_compare(body: SelfCompareIn, user: User = Depends(get_current_user), db: Session = Depends(get_db),
+                 storage: Storage = Depends(get_storage)) -> Response:
+    if not all(previews.HEX.match(c) for c in body.colours):
+        raise AppError(422, "invalid_preview_request")
+    return _render(db, storage, user, body.image_id, "face", lambda rgb: previews.side_by_side(previews.drapes(rgb, body.colours), height=420))
+
+
+@self_draping.post("", status_code=status.HTTP_201_CREATED)
+def self_start(body: SelfDrapingIn, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    image = service.user_image(db, user, body.image_id)
+    if image.kind != "face":
+        raise AppError(422, "wrong_photo_kind", {"needs": "face"})
+    s = SelfDraping(user_id=user.id, image_id=image.id, choices=[])
+    db.add(s)
+    db.flush()
+    db.refresh(s)
+    return _self_out(s, pick_language(request))
+
+
+@self_draping.get("/{session_id}")
+def self_get(session_id: uuid.UUID, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    return _self_out(_own_session(db, user, session_id), pick_language(request))
+
+
+@self_draping.post("/{session_id}/answer")
+def self_answer(session_id: uuid.UUID, body: SelfAnswerIn, request: Request, user: User = Depends(get_current_user),
+                db: Session = Depends(get_db)) -> dict:
+    from datetime import UTC, datetime
+
+    from app.modules.consultations import draping
+
+    s = _own_session(db, user, session_id)
+    answer = body.model_dump(exclude_none=True)
+    try:
+        draping.validate(s.choices, answer)
+    except ValueError as exc:
+        raise AppError(409, "draping_out_of_step", {"reason": str(exc)}) from exc
+    s.choices = [*s.choices, answer]
+    if draping.next_step(s.choices) is None:
+        done = draping.result(s.choices)
+        s.status, s.axes, s.colour_type = "complete", done["axes"], done["colour_type"]
+        s.scores, s.completed_at = [[k, v] for k, v in done["scores"]], datetime.now(UTC)
+    db.flush()
+    return _self_out(s, pick_language(request))
+
+
+@self_draping.post("/{session_id}/undo")
+def self_undo(session_id: uuid.UUID, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    s = _own_session(db, user, session_id)
+    if s.choices:
+        s.choices = s.choices[:-1]
+        s.status, s.axes, s.scores, s.colour_type, s.completed_at = "in_progress", None, None, None, None
+    db.flush()
+    return _self_out(s, pick_language(request))
+
+
+palette_router = APIRouter(prefix="/my-palette", tags=["my palette"], dependencies=[Depends(eligible_user)])
+
+
+@palette_router.get("")
+def my_palette(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict | None:
+    """Her colours, from the most reliable source she has: a delivered expert report first,
+    then the most recent of her own guided draping or photo analysis. None if she has neither."""
+    from app.modules.ai_analysis.models import PhotoAnalysis
+    from app.modules.consultations.models import Consultation, ExpertReport
+
+    language = pick_language(request)
+    expert = db.execute(
+        select(ExpertReport).join(Consultation, Consultation.id == ExpertReport.consultation_id)
+        .where(Consultation.customer_id == user.id, ExpertReport.status == "delivered")
+        .order_by(ExpertReport.delivered_at.desc())
+    ).scalars().all()
+    for report in expert:
+        key = report.content.get("colour_type")
+        if key in colour_types.BY_KEY:
+            return {"basis": "expert", "since": report.delivered_at, "custom_palette": report.content.get("palette"),
+                    **colour_types.summary(key, language)}
+    candidates = []
+    own = db.scalars(select(SelfDraping).where(SelfDraping.user_id == user.id, SelfDraping.status == "complete")
+                     .order_by(SelfDraping.completed_at.desc()).limit(1)).first()
+    if own:
+        candidates.append((own.completed_at, "self_draping", own.colour_type))
+    photo = db.scalars(select(PhotoAnalysis).where(PhotoAnalysis.user_id == user.id, PhotoAnalysis.kind == "seasonal_color")
+                       .order_by(PhotoAnalysis.created_at.desc()).limit(1)).first()
+    if photo and (photo.details or {}).get("axes"):
+        candidates.append((photo.created_at, "photo_analysis", photo.details.get("colour_type") or colour_types.nearest(photo.details["axes"])))
+    if not candidates:
+        return None
+    since, basis, key = max(candidates, key=lambda c: c[0])
+    return {"basis": basis, "since": since, "custom_palette": None, **colour_types.summary(key, language)}

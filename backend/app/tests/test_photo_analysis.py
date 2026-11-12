@@ -356,3 +356,34 @@ def test_tryon_library_flow_admin_creates_approves_customer_tries(client, owner,
     bad = client.post(f"{API}/admin/tryon-items", data={"kind": "garment", "title_en": "x", "title_ar": "x", "licence": "xxx"},
                       files={"file": ("f.jpg", FACE_JPEG, "image/jpeg")}, headers=owner)
     assert bad.status_code == 422 and bad.json()["error"]["code"] == "photo_not_analysable"
+
+
+def test_self_draping_and_my_palette_sources(client, customer, uploads):  # noqa: F811
+    headers = english(client)
+    assert client.get(f"{API}/my-palette", headers=headers).json() is None
+    face = photo_id(client, headers, FACE_JPEG, "face")
+
+    # A photo analysis gives her a palette...
+    client.post(f"{API}/analysis/seasonal_color", json={"image_id": face}, headers=headers)
+    first = client.get(f"{API}/my-palette", headers=headers).json()
+    assert first["basis"] == "photo_analysis" and len(first["colours"]) == 30
+
+    # ...and her own guided draping, done later, replaces it.
+    s = client.post(f"{API}/my-draping", json={"image_id": face}, headers=headers)
+    assert s.status_code == 201, s.text
+    s = s.json()
+    pair = client.get(f"{API}/my-draping/drape-pair", params={"image_id": face, "a": s["next"]["pair"]["a"], "b": s["next"]["pair"]["b"]},
+                      headers=headers)
+    assert pair.status_code == 200 and pair.content[:2] == b"\xff\xd8"
+    assert client.get(f"{API}/my-draping/{s['id']}", headers=customer).status_code == 404  # not hers
+    picks = {"undertone": "b", "depth": "a", "clarity": "a"}  # cool, deep, bright
+    while s["status"] == "in_progress":
+        step = s["next"]
+        answer = {"step": "confirm", "pick": step["options"][0]["key"]} if step["step"] == "confirm" else \
+            {"step": step["step"], "pair": step["pair"]["index"], "pick": picks[step["step"]]}
+        s = client.post(f"{API}/my-draping/{s['id']}/answer", json=answer, headers=headers).json()
+    assert s["result"]["colour_type"]["season"] == "winter"
+    mine = client.get(f"{API}/my-palette", headers=headers).json()
+    assert mine["basis"] == "self_draping" and mine["key"] == s["result"]["colour_type"]["key"]
+    compare = client.post(f"{API}/my-draping/compare", json={"image_id": face, "colours": mine["signature"]}, headers=headers)
+    assert compare.status_code == 200

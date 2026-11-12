@@ -51,3 +51,19 @@ class TryOnItem(Base, IdMixin):
     content_status: Mapped[str] = mapped_column(String(20), default="draft")  # draft | approved
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SelfDraping(Base, IdMixin):
+    """A customer's own guided draping on her face photo (same steps as the consultant
+    studio, consultations/draping.py). Indicative, like the photo analysis."""
+
+    __tablename__ = "self_drapings"
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    image_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("assessment_images.id", ondelete="SET NULL"))
+    choices: Mapped[list] = mapped_column(JSONB, default=list)
+    status: Mapped[str] = mapped_column(String(20), default="in_progress")  # in_progress | complete
+    axes: Mapped[dict | None] = mapped_column(JSONB)
+    scores: Mapped[list | None] = mapped_column(JSONB)
+    colour_type: Mapped[str | None] = mapped_column(String(30))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

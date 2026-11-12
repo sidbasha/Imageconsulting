@@ -4,7 +4,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.errors import AppError, app_error_handler
-from app.modules.ai_analysis.router import admin_tryon, catalogue as tryon_catalogue, colour_types_router, previews_router
+from app.modules.ai_analysis.router import admin_tryon, catalogue as tryon_catalogue, colour_types_router, palette_router, previews_router, self_draping
 from app.modules.ai_analysis.router import router as analysis_router
 from app.modules.assessments.router import images as images_router
 from app.modules.assessments.router import router as assessments_router
@@ -49,6 +49,8 @@ def create_app() -> FastAPI:
     v1.include_router(previews_router)
     v1.include_router(tryon_catalogue)
     v1.include_router(colour_types_router)
+    v1.include_router(self_draping)
+    v1.include_router(palette_router)
     v1.include_router(admin_tryon)
     for r in (
         users.router, users.identity, users.admin,

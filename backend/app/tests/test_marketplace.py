@@ -447,6 +447,9 @@ def test_report_is_filled_from_draping_and_prints_the_palette(client, owner, cus
         doc = fitz.open(stream=pdf.content, filetype="pdf")
         text = "".join(page.get_text() for page in doc)
         assert doc.page_count >= 2 and (needle in text or needle[::-1] in text or language == "ar")
+    # The delivered report is now the client's palette in the app, with her consultant's colours.
+    mine = client.get(f"{API}/my-palette", headers=customer).json()
+    assert mine["basis"] == "expert" and mine["key"] == chosen and mine["custom_palette"] == ["#a3c4e0", "#e8b4c8"]
 
 
 def test_template_upgrade_adds_new_sections_without_touching_edited_ones(db):
