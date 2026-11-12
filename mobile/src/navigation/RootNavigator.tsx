@@ -33,6 +33,8 @@ import { PracticeScreen } from '../screens/PracticeScreen';
 import { RecommendationsScreen } from '../screens/RecommendationsScreen';
 import { LoginScreen, RegisterScreen } from '../screens/AuthScreens';
 import { MainTabs } from './MainTabs';
+import { AdminApprovalsScreen, AdminStylistsScreen, AdminOrdersScreen, AdminModerationScreen } from '../screens/admin/ReviewScreens';
+import { AdminCatalogueScreen, AdminPlansScreen, AdminTryOnScreen, AdminRetailScreen, AdminPromotionsScreen, AdminRewardsScreen, AdminSettingsScreen } from '../screens/admin/ContentScreens';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { colors, spacing } from '../theme';
 
@@ -65,6 +67,17 @@ export type AppStackParams = {
   ReportEditor: { id: string };
   Workspace: { id: string };
   Featured: undefined;
+  AdminApprovals: undefined;
+  AdminStylists: undefined;
+  AdminOrders: undefined;
+  AdminModeration: undefined;
+  AdminCatalogue: undefined;
+  AdminPlans: undefined;
+  AdminTryOn: undefined;
+  AdminRetail: undefined;
+  AdminPromotions: undefined;
+  AdminRewards: undefined;
+  AdminSettings: undefined;
 };
 
 const AuthStack = createNativeStackNavigator<AuthStackParams>();
@@ -128,6 +141,17 @@ export function RootNavigator() {
           <AppStack.Screen name="ReportEditor" component={ReportEditorScreen} />
           <AppStack.Screen name="Workspace" component={WorkspaceScreen} />
           <AppStack.Screen name="Featured" component={FeaturedScreen} />
+          <AppStack.Screen name="AdminApprovals" component={AdminApprovalsScreen} />
+          <AppStack.Screen name="AdminStylists" component={AdminStylistsScreen} />
+          <AppStack.Screen name="AdminOrders" component={AdminOrdersScreen} />
+          <AppStack.Screen name="AdminModeration" component={AdminModerationScreen} />
+          <AppStack.Screen name="AdminCatalogue" component={AdminCatalogueScreen} />
+          <AppStack.Screen name="AdminPlans" component={AdminPlansScreen} />
+          <AppStack.Screen name="AdminTryOn" component={AdminTryOnScreen} />
+          <AppStack.Screen name="AdminRetail" component={AdminRetailScreen} />
+          <AppStack.Screen name="AdminPromotions" component={AdminPromotionsScreen} />
+          <AppStack.Screen name="AdminRewards" component={AdminRewardsScreen} />
+          <AppStack.Screen name="AdminSettings" component={AdminSettingsScreen} />
         </AppStack.Navigator>
       ) : (
         <AuthStack.Navigator screenOptions={{ ...screenOptions, animation }}>

@@ -1,6 +1,6 @@
 # Image Consulting Application
 
-One product, three release phases, controlled from a Super Admin panel. English and Arabic.
+One product, three release phases, switched by developers in the codebase. English and Arabic.
 See `STATUS.md` for exactly what exists today and what does not.
 
 ## Layout
@@ -8,9 +8,8 @@ See `STATUS.md` for exactly what exists today and what does not.
 ```
 backend/   FastAPI modular monolith (Python), PostgreSQL, Alembic
 docs/      Requirements Traceability Matrix and its generator
-mobile/    React Native app with android/ and ios/ (foundation; see mobile/README.md)
+mobile/    React Native app with android/ and ios/; staff see an Admin tab (see mobile/README.md)
 scripts/   e2e.sh: API + mobile client end-to-end check
-admin/     React admin panel (see admin/README.md)
 ```
 
 ## Run locally
@@ -39,39 +38,33 @@ Tests need a PostgreSQL database (default `ic_test`, override with `IC_TEST_DATA
 cd backend && python -m pytest
 ```
 
-## Releasing a phase
+## Releasing a phase (developers only)
 
-All calls need a Super Admin access token (`POST /api/v1/auth/login`).
+There is no screen and no API for this, on purpose. Phases and features are switched in
+`backend/app/release_plan.py`:
 
-```bash
-BASE=http://localhost:8000/api/v1/admin/phase-management
-
-# What is on, what is off, and what each feature depends on
-curl -H "Authorization: Bearer $TOKEN" $BASE/state
-
-# Dry run
-curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-     -d '{"phases": {"phase2": true}}' $BASE/releases/validate
-
-# Release Phase 2 now (add "activate_at": "2027-01-15T06:00:00+04:00" to schedule it)
-curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-     -d '{"phases": {"phase2": true}, "note": "Phase 2 delivered to client"}' $BASE/releases
-
-# Switch one feature
-curl -X POST ... -d '{"features": {"phase1.eyewear": false}, "note": "Pending client decision"}' $BASE/releases
-
-# History, and rollback to an earlier release
-curl -H "Authorization: Bearer $TOKEN" $BASE/history
-curl -X POST ... -d '{"note": "Reverting"}' $BASE/releases/<release id>/rollback
-
-# See the app as a stored or scheduled release would show it (Super Admin only)
-curl -H "Authorization: Bearer $TOKEN" -H "X-Release-Preview: <release id>" \
-     http://localhost:8000/api/v1/config/features
+```python
+PHASES = {"phase1": True, "phase2": True, "phase3": False}
+FEATURES = {"phase1.eyewear": False}   # optional: hide one feature inside a phase that is on
 ```
 
-Scheduled releases activate on the next API request after they fall due. Also run
-`python -m app.cli apply-due` every minute (cron now, Celery beat later) so a schedule holds
-with no traffic, and `python -m app.cli renew-subscriptions` daily.
+Then, from `backend/`:
+
+```bash
+python -m app.cli release check                     # dry run: what turns on/off, dependency problems
+python -m app.cli release apply --note "Phase 2 for the client"
+python -m app.cli release apply --note "Launch" --at 2027-01-15T06:00:00+04:00   # scheduled
+python -m app.cli release status                    # what is live now
+python -m app.cli release history
+python -m app.cli release rollback 3 --note "Back to v3"
+python -m app.cli release cancel 5                  # a scheduled release
+```
+
+Deploys run `release apply` at container start, so committing a change to the file and
+deploying is enough. A release that would leave an enabled feature without one it depends on is
+refused with the reason. Switching something off hides it; data is kept. Run
+`python -m app.cli apply-due` every minute (cron) so a scheduled release activates on time, and
+`python -m app.cli renew-subscriptions` daily.
 
 ## Policy settings
 

@@ -142,11 +142,9 @@ ROLES = [
     ("customer", "Customer"),
 ]
 
-# Only permissions that code actually checks are seeded. Release control is
-# Super Admin only; the client-facing "admin" role deliberately has neither.
+# Only permissions that code actually checks are seeded. Release control has
+# no permission: it is not in the API at all (developers use app/release_plan.py).
 PERMISSIONS = {
-    "release.view": ["super_admin"],
-    "release.manage": ["super_admin"],
     # Supporting administration, Feature List rows 53-60 (inferred by the vendor,
     # not confirmed by the client). Role assignment is a proposal.
     "users.review": ["super_admin", "admin", "support_manager"],  # row 53: eligibility and identity

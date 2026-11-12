@@ -9,12 +9,15 @@ import {
   ArrowUpLeft, ArrowUpRight, BadgePercent, BookOpen, Brush, CalendarHeart, Camera, Crown, FileText, Flower2, Gem, Gift, Glasses,
   Handbag, Heart, House, Layers, Mail, MapPin, MessagesSquare, Palette, PersonStanding, ScanFace, Scissors, Search, Settings,
   Shirt, ShoppingBag, ShoppingCart, Sparkle, Sparkles, Star, SwatchBook, Tag, Ticket, UserRound, UserSearch, WandSparkles, Wine,
+  ShieldCheck, IdCard, BadgeCheck, Receipt, Flag, Package, Megaphone, SlidersHorizontal, Images, Link,
 } from 'lucide-react-native';
 
 const ICONS = {
   'arrow-up-left': ArrowUpLeft, 'arrow-up-right': ArrowUpRight, house: House, search: Search, settings: Settings, star: Star,
   'map-pin': MapPin, sparkles: Sparkles, flower: Flower2, bag: ShoppingBag, user: UserRound, palette: Palette, shirt: Shirt,
   'user-search': UserSearch, book: BookOpen, file: FileText, brush: Brush,
+  shield: ShieldCheck, 'id-card': IdCard, badge: BadgeCheck, receipt: Receipt, flag: Flag, package: Package,
+  megaphone: Megaphone, sliders: SlidersHorizontal, images: Images, link: Link, gem: Gem, crown: Crown, ticket: Ticket,
 };
 export type IconName = keyof typeof ICONS;
 

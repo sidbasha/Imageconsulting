@@ -83,7 +83,7 @@ def test_manual_review_holds_new_customers_until_approved(client, owner):
 def test_client_admin_reviews_users_but_cannot_release(client):
     admin = login(client, "client-admin@example.com")
     assert client.get(f"{API}/admin/eligibility", headers=admin).status_code == 200
-    assert client.get(f"{API}/admin/phase-management/state", headers=admin).status_code == 403
+    assert client.get(f"{API}/admin/phase-management/state", headers=admin).status_code == 404  # not in the API at all
     assert client.get(f"{API}/admin/eligibility", headers=login(client, "customer@example.com")).status_code == 403
 
 

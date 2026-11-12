@@ -21,6 +21,8 @@ export type User = {
   full_name: string;
   preferred_language: Language;
   role: string;
+  /** What this user may do; staff permissions open the Admin tab. */
+  permissions?: string[];
 };
 
 export type EnabledFeatures = {
@@ -541,6 +543,18 @@ export function createApiClient(options: Options) {
     vouchers: (near: Near = {}) => request<Voucher[]>('GET', `/vouchers${near.lat !== undefined ? `?lat=${near.lat}&lng=${near.lng}` : ''}`),
     myVouchers: () => request<Voucher[]>('GET', '/vouchers/mine'),
     claimVoucher: (id: string) => request<Voucher>('POST', `/vouchers/${id}/claim`),
+
+    // ---------- staff (Admin tab) ----------
+    /** Any API call, for the admin screens that read and write admin endpoints. */
+    call: <T = any>(method: string, path: string, body?: unknown) => request<T>(method, path, { body }),
+    /** A protected image (ID document, credential, try-on cut-out) as a data URI. */
+    image: (path: string) => requestImage('GET', path, undefined),
+    uploadTryOn(file: FilePart, fields: Record<string, string>) {
+      const form = new FormData();
+      appendFile(form, 'file', file);
+      Object.entries(fields).forEach(([k, v]) => form.append(k, v));
+      return request<any>('POST', '/admin/tryon-items', { body: form });
+    },
 
     /** Enabled phases and features for the active release. Drives navigation. */
     enabledFeatures: () => request<EnabledFeatures>('GET', '/config/features'),

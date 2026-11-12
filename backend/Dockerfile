@@ -10,4 +10,4 @@ RUN python -m app.cli fetch-models
 RUN useradd --system app && chown -R app /srv
 USER app
 EXPOSE 8000
-CMD ["sh", "-c", "alembic upgrade head && python -m app.cli seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "alembic upgrade head && python -m app.cli seed && python -m app.cli release apply --note \"Deploy: app/release_plan.py\" && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

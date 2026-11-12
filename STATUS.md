@@ -15,12 +15,23 @@ the honest ledger: nothing is listed as complete unless it exists and its tests 
 | 3 | Assessments and photo upload | Done with DRAFT content |
 | 4 | AI analysis | Done as indicative photo analysis (face, body, colour) on on-device models. Accuracy unmeasured. Celery workers not wired |
 | 5 | Recommendations, reports, guides, entitlements, subscriptions, payments, retail links, loyalty | Done against a SANDBOX payment gateway. Real gateway not chosen |
-| 6 | Mobile app for Phase 1 and admin panel | Done: mobile for customers and stylists; web admin panel for every admin function and release control |
+| 6 | Mobile app for Phase 1 and admin panel | Done: mobile for customers, stylists and staff (Admin tab). Release control is developer-only (app/release_plan.py and the CLI) |
 | 7 | Phase 2 marketplace | Done (backend and customer screens). Stylist screens partial |
 | 8 | Phase 2 safeguards and tools | Done. Product recognition and video calls have no provider |
 | 9 | Mobile and admin screens for Phase 2 | Done |
 | 10 | Phase 3 | Done (location uses a newly added native library, not yet run on a device) |
 | 11 | Hardening | Not started |
+
+## Admin inside the app; release control developer-only (12 Nov 2026)
+
+- The separate web admin (`admin/`) is removed. Staff accounts see an **Admin** tab in the app with the
+  sections their role allows: approvals, stylists, orders, moderation, products, try-on library, retail
+  links, plans, promotions and vouchers, rewards, settings.
+- Phase management is no longer in the API or any screen. Developers switch phases and features in
+  `backend/app/release_plan.py` and apply with `python -m app.cli release apply --note "..."`
+  (also `status`, `check`, `history`, `rollback`, `cancel`). Deploys apply the file at container start.
+  History, dependency checks, scheduling and rollback are unchanged.
+- Tests: backend 121, mobile 46.
 
 ## Try-on, stylist tools, location and admin panel (12 Nov 2026)
 
@@ -107,7 +118,7 @@ Status: Built = works end to end with tests; Partial = see note; API = backend o
 | 50 | Location-targeted promotions | Built | As 47 |
 | 51 | Vouchers and offers | Built | |
 | 52 | International expansion | Partial | Markets switchable; no currency conversion, local payment or local content |
-| 53-60 | Supporting administration | Built | Web admin panel (`admin/`), sections by role permission |
+| 53-60 | Supporting administration | Built | Admin tab inside the mobile app, sections by role permission (no separate web portal) |
 
 ### Integrations that are sandboxes or missing (need client decisions or accounts)
 

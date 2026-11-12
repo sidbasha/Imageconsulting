@@ -21,7 +21,6 @@ from app.modules.phase_management.seed import seed  # noqa: E402
 PASSWORD = "correct-horse-battery"
 # Eligibility facts for a test customer: an adult woman in the UAE.
 ELIGIBLE = {"date_of_birth": "1990-05-01", "gender": "female", "country_code": "AE"}
-ADMIN = "/api/v1/admin/phase-management"
 
 # Business modules arrive in later milestones. Until then these test-only
 # routes stand in for "an endpoint that belongs to feature X" so the guard is
@@ -107,11 +106,33 @@ def customer(client):
     return login(client, "customer@example.com")
 
 
-@pytest.fixture
-def release(client, owner):
-    """Create a release as the Super Admin; returns the HTTP response."""
+class ReleaseResult:
+    """What a developer's release command produced: 201 with the release, or the refusal."""
 
-    def _release(note="test release", **changes):
-        return client.post(f"{ADMIN}/releases", json={"note": note, **changes}, headers=owner)
+    def __init__(self, status_code: int, body: dict):
+        self.status_code, self._body = status_code, body
+
+    def json(self) -> dict:
+        return self._body
+
+
+@pytest.fixture
+def release():
+    """Make a release the way a developer does (release service; there is no API)."""
+    from datetime import datetime
+
+    from app.core.errors import AppError
+    from app.modules.phase_management import service as release_service
+
+    def _release(note="test release", phases=None, features=None, activate_at=None):
+        with SessionLocal() as session:
+            try:
+                at = datetime.fromisoformat(activate_at) if activate_at else None
+                made = release_service.create_release(session, None, {"phases": phases or {}, "features": features or {}}, note, at)
+                session.commit()
+                return ReleaseResult(201, {"id": str(made.id), "version": made.version, "status": made.status})
+            except AppError as exc:
+                session.rollback()
+                return ReleaseResult(exc.status, {"error": {"code": exc.code, "detail": exc.detail}})
 
     return _release

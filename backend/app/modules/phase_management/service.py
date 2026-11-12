@@ -230,19 +230,6 @@ def current_snapshot(db: Session) -> tuple[ReleaseConfiguration, Snapshot]:
     return release, release.snapshot
 
 
-def preview_snapshot(db: Session, release_id: str) -> tuple[ReleaseConfiguration, Snapshot]:
-    """State as it would be if the given stored release were active."""
-    try:
-        release = db.get(ReleaseConfiguration, uuid.UUID(release_id))
-    except ValueError:
-        release = None
-    if release is None:
-        raise AppError(404, "not_found")
-    if release.snapshot is not None:
-        return release, reconcile(db, release.snapshot, default_enabled=False)
-    return release, resolve(db, active_release(db).snapshot, release.changes or {})
-
-
 def is_enabled(db: Session, key: str) -> bool:
     """For service-to-service checks inside business workflows."""
     return key in effective_keys(current_snapshot(db)[1])

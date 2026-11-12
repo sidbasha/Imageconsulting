@@ -51,17 +51,17 @@ def test_logout_revokes_the_refresh_token(client):
 def test_case07_case08_language_switch_changes_api_messages(client, customer):
     """API half of mandatory cases 7 and 8. Screen-level RTL/LTR checks belong
     to the mobile and admin milestones."""
-    arabic = client.get("/api/v1/admin/phase-management/state", headers=customer)
+    arabic = client.get("/api/v1/admin/settings", headers=customer)
     assert arabic.headers["content-language"] == "ar"
     assert arabic.json()["error"]["message"] == "ليست لديك صلاحية لتنفيذ هذا الإجراء."
 
     updated = client.patch("/api/v1/users/me", json={"preferred_language": "en"}, headers=customer)
     assert updated.json()["preferred_language"] == "en"
-    english = client.get("/api/v1/admin/phase-management/state", headers=customer)
+    english = client.get("/api/v1/admin/settings", headers=customer)
     assert english.json()["error"]["message"] == "You do not have permission to do this."
 
     client.patch("/api/v1/users/me", json={"preferred_language": "ar"}, headers=customer)
-    assert client.get("/api/v1/admin/phase-management/state", headers=customer).headers["content-language"] == "ar"
+    assert client.get("/api/v1/admin/settings", headers=customer).headers["content-language"] == "ar"
     assert client.patch("/api/v1/users/me", json={"preferred_language": "fr"}, headers=customer).status_code == 422
 
 
@@ -98,13 +98,11 @@ def test_every_error_code_has_an_english_and_arabic_message():
         assert not sorted(codes - messages.keys()), language
 
 
-def test_profile_lists_permissions_and_cors_allows_the_admin_panel(client, owner):
+def test_profile_lists_permissions_and_no_browser_origins(client, owner):
     me = client.get("/api/v1/users/me", headers=owner).json()
-    assert "release.manage" in me["permissions"] and "orders.manage" in me["permissions"]
+    assert "orders.manage" in me["permissions"] and not any(p.startswith("release.") for p in me["permissions"])
     customer = client.post("/api/v1/auth/login", json={"email": "customer@example.com", "password": "correct-horse-battery"}).json()
     assert client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {customer['access_token']}"}).json()["permissions"] == []
-    preflight = client.options("/api/v1/users/me", headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "GET",
-                                                            "Access-Control-Request-Headers": "authorization"})
-    assert preflight.headers["access-control-allow-origin"] == "http://localhost:5173"
-    other = client.options("/api/v1/users/me", headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"})
-    assert "access-control-allow-origin" not in other.headers
+    # No browser client: cross-origin requests get no CORS permission.
+    preflight = client.options("/api/v1/users/me", headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "GET"})
+    assert "access-control-allow-origin" not in preflight.headers

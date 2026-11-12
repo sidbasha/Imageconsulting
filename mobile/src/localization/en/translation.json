@@ -634,10 +634,173 @@
     "ExpertsTitle": "Your experts",
     "ExpertsIntro": "Book, consult and chat with verified stylists.",
     "ShopTitle": "Library and shop",
-    "ShopIntro": "Guides, reports, products and offers."
+    "ShopIntro": "Guides, reports, products and offers.",
+    "Admin": "Admin"
   },
   "menu": {
     "open": "Menu",
     "close": "Close menu"
+  },
+  "admin": {
+    "kicker": "Team workspace",
+    "title": "Admin",
+    "waiting": "{{count}} items need your attention",
+    "allClear": "Everything is up to date.",
+    "none": "Nothing waiting.",
+    "approve": "Approve",
+    "reject": "Reject",
+    "accept": "Accept",
+    "verify": "Verify",
+    "suspend": "Suspend",
+    "view": "View",
+    "save": "Save",
+    "saved": "Saved.",
+    "add": "Add",
+    "cancel": "Cancel",
+    "all": "All",
+    "on": "On",
+    "off": "Off",
+    "priceAed": "Price (AED)",
+    "titleEn": "Title (English)",
+    "titleAr": "Title (Arabic)",
+    "sections": {
+      "approvals": "Approvals",
+      "stylists": "Stylists",
+      "orders": "Orders",
+      "moderation": "Moderation",
+      "catalogue": "Products",
+      "tryOn": "Try-on library",
+      "retail": "Retail links",
+      "plans": "Plans and prices",
+      "promotions": "Promotions",
+      "rewards": "Rewards",
+      "settings": "Settings"
+    },
+    "hints": {
+      "approvals": "Eligibility and ID documents",
+      "stylists": "Applications and credentials",
+      "orders": "Refunds and deliveries",
+      "moderation": "Flagged messages and reviews",
+      "catalogue": "Guides, reports and products",
+      "tryOn": "Garments and hairstyles",
+      "retail": "Shop-the-look links",
+      "plans": "Membership pricing",
+      "promotions": "Campaigns and vouchers",
+      "rewards": "Points rules",
+      "settings": "Policies and markets"
+    },
+    "approvals": {
+      "identity": "ID documents",
+      "eligibility": "Eligibility",
+      "showDocument": "Show document ({{count}})",
+      "readOff": "Read the date of birth and gender off the document. It is deleted after review.",
+      "reason": "Reason, if rejecting"
+    },
+    "stylists": {
+      "intro": "Accept at least one credential before approving.",
+      "years": "{{count}} years",
+      "note": "Note to the applicant"
+    },
+    "orders": {
+      "intro": "Payments use the test gateway until a real one is connected.",
+      "refund": "Refund",
+      "refundTitle": "Refund this order?",
+      "refundBody": "{{amount}} goes back, and what the order gave is taken back.",
+      "status": {
+        "pending": "Awaiting payment",
+        "paid": "Paid",
+        "refund_due": "Refund due",
+        "refunded": "Refunded",
+        "failed": "Failed"
+      },
+      "delivery": {
+        "unfulfilled": "To send",
+        "shipped": "Shipped",
+        "delivered": "Delivered"
+      }
+    },
+    "moderation": {
+      "intro": "Dismissing a flag delivers the message after all and stops it counting.",
+      "flagged": "Flagged messages",
+      "restricted": "Paused or closed accounts",
+      "count": "{{count}} violations",
+      "dismiss": "Dismiss",
+      "uphold": "Uphold",
+      "lift": "Lift",
+      "closed": "Closed {{date}}",
+      "until": "Paused until {{date}}",
+      "hide": "Hide",
+      "publish": "Publish"
+    },
+    "catalogue": {
+      "intro": "Titles and prices are placeholders until the client approves them.",
+      "onSale": "On sale",
+      "approved": "Content approved"
+    },
+    "plans": {
+      "intro": "Each plan bills its full price once per period.",
+      "offered": "Offered"
+    },
+    "tryOn": {
+      "intro": "Upload a photo of a model wearing the garment (whole body, facing the camera) or a portrait with the hairstyle. Use only photos you have the rights to.",
+      "garment": "Garment",
+      "hairstyle": "Hairstyle",
+      "licence": "Photo rights",
+      "licenceHint": "e.g. Brand lookbook, licensed until 2027",
+      "pick": "Choose the photo",
+      "uploaded": "Cut out. Check it below, then approve.",
+      "live": "Live",
+      "draft": "Draft",
+      "withdraw": "Withdraw"
+    },
+    "retail": {
+      "intro": "Links to clothing on retailers' sites, matched to customers' results.",
+      "retailer": "Retailer",
+      "link": "Link (https)",
+      "price": "Price text",
+      "matches": "Matches",
+      "clicks": "{{count}} clicks"
+    },
+    "promotions": {
+      "campaigns": "Campaigns",
+      "stats": "Seen {{seen}} · clicked {{clicks}}",
+      "stop": "Stop",
+      "newVoucher": "New voucher",
+      "partner": "Partner",
+      "code": "Code",
+      "days": "Days",
+      "max": "Max claims"
+    },
+    "rewards": {
+      "intro": "Draft rules; set real values before launch.",
+      "points": "Points",
+      "events": {
+        "assessment_completed": "Complete an assessment",
+        "photo_analysis": "Analyse a photo",
+        "purchase": "Purchase (per AED, see settings)",
+        "consultation_completed": "Complete a consultation",
+        "testimonial": "Write a testimonial",
+        "daily_visit": "Open the app (daily)"
+      }
+    },
+    "settings": {
+      "intro": "Each value stands in for a decision the client has not made yet. Changes apply at once.",
+      "names": {
+        "eligibility_min_age": "Minimum age",
+        "eligibility_women_only": "Women only",
+        "eligibility_manual_review": "Review every new customer",
+        "identity_delete_documents_after_review": "Delete ID images after review",
+        "moderation_warn_after": "Warn after (violations)",
+        "moderation_suspend_after": "Pause messaging after",
+        "moderation_suspend_days": "Pause length (days)",
+        "moderation_ban_after": "Close account after",
+        "ranking_weights": "Stylist ranking weights",
+        "workspace_credits_per_client": "Workspace credits per client",
+        "promotion_featured_price_per_day_minor": "Featured placement per day (fils)",
+        "rewards_points_per_aed": "Points per AED",
+        "booking_cancel_hours": "Free cancellation up to (hours)",
+        "booking_slot_minutes": "Default session length (minutes)"
+      }
+    }
   }
 }

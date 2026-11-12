@@ -10,7 +10,8 @@ from sqlalchemy.exc import IntegrityError
 from app.modules.auth.models import User
 from app.modules.phase_management import service
 from app.modules.phase_management.models import ReleaseConfiguration, ReleaseHistory
-from app.tests.conftest import ADMIN, login
+from app.modules.phase_management import plan
+from app.tests.conftest import login
 
 FEATURES = "/api/v1/config/features"
 PROBE = "/api/v1/_probe"
@@ -69,28 +70,14 @@ def test_case06_disabled_feature_is_blocked_for_direct_api_calls(client, custome
     assert response.json()["error"]["message"] == "هذه الميزة غير متاحة."  # customer's saved language is Arabic
 
 
-def test_case06_release_control_is_super_admin_only(client, customer):
-    client_admin = login(client, "client-admin@example.com")
-    for headers in (customer, client_admin):
-        assert client.get(f"{ADMIN}/state", headers=headers).status_code == 403
-        assert client.get(f"{ADMIN}/history", headers=headers).status_code == 403
-        response = client.post(
-            f"{ADMIN}/releases", json={"note": "sneaky", "phases": {"phase2": True}}, headers=headers
-        )
-        assert response.status_code == 403
-    assert client.get(f"{ADMIN}/state").status_code == 401
-    assert probe(client, customer, "p2") == 404
-
-
-def test_case06_preview_header_is_ignored_for_non_super_admin(client, customer, owner, release):
-    scheduled = release(phases={"phase2": True}, activate_at=(datetime.now(UTC) + timedelta(days=1)).isoformat())
-    preview = {"X-Release-Preview": scheduled.json()["id"]}
-    assert probe(client, {**customer, **preview}, "p2") == 404
-    assert probe(client, preview, "p2") == 404
-    # The Super Admin sees the app as it will be, without changing it for anyone else.
-    assert probe(client, {**owner, **preview}, "p2") == 200
-    assert client.get(FEATURES, headers={**owner, **preview}).json()["preview"] is True
-    assert probe(client, owner, "p2") == 404
+def test_case06_release_control_is_not_reachable_over_the_api(client, customer, owner):
+    """Phases are switched by developers in the codebase; nobody can do it through the app or API."""
+    for headers in (customer, owner, login(client, "client-admin@example.com"), {}):
+        for method, path in (("GET", "/state"), ("GET", "/history"), ("POST", "/releases"), ("GET", "/releases")):
+            response = client.request(method, f"/api/v1/admin/phase-management{path}", json={"note": "x", "phases": {"phase2": True}}, headers=headers)
+            assert response.status_code == 404
+    # A header that used to preview releases is now ignored by everyone.
+    assert probe(client, {**owner, "X-Release-Preview": "anything"}, "p2") == 404
 
 
 def test_case10_case11_users_survive_phase_deactivation(client, db, release):
@@ -102,24 +89,22 @@ def test_case10_case11_users_survive_phase_deactivation(client, db, release):
     assert client.get("/api/v1/users/me", headers=login(client, "customer@example.com")).status_code == 200
 
 
-def test_case12_rollback_restores_an_earlier_release(client, customer, owner, release):
-    initial = client.get(f"{ADMIN}/releases", headers=owner).json()[-1]
+def test_case12_rollback_restores_an_earlier_release(client, customer, db, release):
+    initial = plan.history(db)[-1]
     release(phases={"phase2": True})
     release(features={"phase1.eyewear": False})
     assert [probe(client, customer, p) for p in ("p1-enh", "p2")] == [404, 200]
 
-    response = client.post(
-        f"{ADMIN}/releases/{initial['id']}/rollback", json={"note": "back to launch state"}, headers=owner
-    )
-    assert response.status_code == 201
-    assert response.json()["restored_from_id"] == initial["id"]
+    restored = service.rollback(db, None, initial["id"], "back to launch state")
+    db.commit()
+    assert restored.restored_from_id == initial["id"]
     assert [probe(client, customer, p) for p in ("p1-enh", "p2")] == [200, 404]
 
-    history = client.get(f"{ADMIN}/history", headers=owner).json()
-    assert [h["action"] for h in history] == ["rolled_back", "activated", "activated", "seeded"]
-    assert history[0]["detail"]["disabled"]  # records exactly what the rollback switched off
-    statuses = [r["status"] for r in client.get(f"{ADMIN}/releases", headers=owner).json()]
-    assert statuses == ["active", "superseded", "superseded", "superseded"]
+    actions = [h.action for h in db.scalars(
+        select(ReleaseHistory).join(ReleaseConfiguration, ReleaseConfiguration.id == ReleaseHistory.release_id)
+        .order_by(ReleaseConfiguration.version.desc()))]
+    assert actions == ["rolled_back", "activated", "activated", "seeded"]
+    assert [r["status"] for r in plan.history(db)] == ["active", "superseded", "superseded", "superseded"]
 
 
 def test_individual_feature_can_be_switched_without_touching_its_phase(client, customer, release):
@@ -155,15 +140,13 @@ def test_cannot_disable_phase1_while_phase2_is_on(client, release):
     assert release(phases={"phase1": False}).status_code == 409
 
 
-def test_validate_is_a_dry_run(client, owner, customer):
-    response = client.post(f"{ADMIN}/releases/validate", json={"phases": {"phase2": True}}, headers=owner)
-    body = response.json()
+def test_validate_is_a_dry_run(client, db, customer):
+    body = service.validate_changes(db, {"phases": {"phase2": True}, "features": {}})
     assert body["violations"] == [] and len(body["would_enable"]) == 24 and body["would_disable"] == []
     assert probe(client, customer, "p2") == 404
 
 
-def test_release_requires_a_note_known_keys_and_a_real_change(client, owner, release):
-    assert client.post(f"{ADMIN}/releases", json={"phases": {"phase2": True}}, headers=owner).status_code == 422
+def test_release_requires_known_keys_and_a_real_change(release):
     assert release(phases={"phase9": True}).json()["error"]["code"] == "unknown_key"
     assert release(phases={"phase1": True}).json()["error"]["code"] == "no_changes"
 
@@ -212,12 +195,18 @@ def test_scheduled_release_that_no_longer_validates_fails_safely(client, custome
     assert probe(client, customer, "p2-makeup") == 200  # active release untouched
 
 
-def test_scheduled_release_can_be_cancelled(client, owner, db, release):
+def test_scheduled_release_can_be_cancelled(db, release):
+    import uuid
+
+    from app.core.errors import AppError
+
     due = datetime.now(UTC) + timedelta(hours=1)
     scheduled = release(phases={"phase2": True}, activate_at=due.isoformat()).json()
-    assert client.post(f"{ADMIN}/releases/{scheduled['id']}/cancel", headers=owner).json()["status"] == "cancelled"
+    assert service.cancel(db, None, uuid.UUID(scheduled["id"])).status == "cancelled"
+    db.commit()
     assert service.apply_due(db, now=due + timedelta(hours=1)) == 0
-    assert client.post(f"{ADMIN}/releases/{scheduled['id']}/cancel", headers=owner).status_code == 409
+    with pytest.raises(AppError):
+        service.cancel(db, None, uuid.UUID(scheduled["id"]))
 
 
 def test_schedule_must_be_in_the_future(release):
@@ -233,8 +222,8 @@ def test_database_allows_only_one_active_release(db):
     db.rollback()
 
 
-def test_state_lists_every_excel_feature_with_its_source_row(client, owner):
-    state = client.get(f"{ADMIN}/state", headers=owner).json()
+def test_state_lists_every_excel_feature_with_its_source_row(db):
+    state = service.describe_state(db, *service.current_snapshot(db))
     assert [p["enabled"] for p in state["phases"]] == [True, False, False]
     assert [f["source_row"] for f in state["features"]] == list(range(1, 53))
     makeup = next(f for f in state["features"] if f["key"] == "phase2.makeup_audit")
@@ -248,3 +237,72 @@ def test_seed_is_idempotent(db):
     seed(db)
     db.commit()
     assert db.scalar(select(func.count()).select_from(ReleaseConfiguration)) == 1
+
+
+# ---------- developer workflow: app/release_plan.py and the CLI ----------
+
+@pytest.fixture
+def plan_file(monkeypatch):
+    """Stands in for edits to app/release_plan.py."""
+    from app import release_plan
+
+    def _set(phases, features=None):
+        monkeypatch.setattr(release_plan, "PHASES", phases)
+        monkeypatch.setattr(release_plan, "FEATURES", features or {})
+    monkeypatch.setattr(plan, "load_plan", lambda: {"phases": {k: bool(v) for k, v in release_plan.PHASES.items()},
+                                                    "features": {k: bool(v) for k, v in release_plan.FEATURES.items()}})
+    return _set
+
+
+def test_plan_file_drives_what_is_live(client, customer, db, plan_file):
+    plan_file({"phase1": True, "phase2": True, "phase3": False}, {"phase1.eyewear": False})
+    assert plan.check(db)["violations"] == []
+    made = plan.apply(db, "Phase 2 for the client")
+    db.commit()
+    assert made.status == "active"
+    assert [probe(client, customer, p) for p in ("p1", "p1-enh", "p2", "p3")] == [200, 404, 200, 404]
+    # Applying the same file again changes nothing (deploys can run it every time).
+    assert plan.apply(db, "again") is None
+    state = plan.status(db)
+    assert state["phases"] == {"phase1": True, "phase2": True, "phase3": False} and "phase1.eyewear" in state["hidden"]
+
+
+def test_plan_that_breaks_a_dependency_is_refused_and_nothing_changes(client, customer, db, plan_file):
+    from app.core.errors import AppError
+
+    plan_file({"phase1": True, "phase2": False, "phase3": True})
+    assert {v["requires"] for v in plan.check(db)["violations"]} >= {"phase2.booking"}
+    with pytest.raises(AppError):
+        plan.apply(db, "bad plan")
+    db.rollback()
+    assert probe(client, customer, "p3") == 404
+
+
+def test_plan_with_unknown_keys_stops_before_doing_anything(db, monkeypatch):
+    from app import release_plan
+
+    monkeypatch.setattr(plan.importlib, "reload", lambda module: module)  # keep the edit below
+    original = release_plan.PHASES
+    try:
+        release_plan.PHASES = {"phase1": True, "phase7": True}
+        with pytest.raises(SystemExit) as stop:
+            plan.changes_from_plan(db)
+        assert "phase7" in str(stop.value)
+    finally:
+        release_plan.PHASES = original
+
+
+def test_cli_release_commands(db, plan_file, capsys, monkeypatch):
+    import sys
+
+    from app import cli
+
+    plan_file({"phase1": True, "phase2": True, "phase3": False})
+    for argv in (["release", "check"], ["release", "apply", "--note", "Phase 2"], ["release", "status"], ["release", "history"]):
+        monkeypatch.setattr(sys, "argv", ["app.cli", *argv])
+        cli.main()
+    out = capsys.readouterr().out
+    assert "OK. Turns on:" in out and "Release v2 is live." in out and "phase2: ON" in out and "v2" in out
+    monkeypatch.setattr(sys, "argv", ["app.cli", "release", "rollback", "1", "--note", "Back"])
+    cli.main()
+    assert "restores v1" in capsys.readouterr().out

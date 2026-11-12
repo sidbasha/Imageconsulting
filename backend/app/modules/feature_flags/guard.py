@@ -4,7 +4,7 @@ every router that belongs to a feature depends on `require_feature(key)`.
     router = APIRouter(dependencies=[Depends(require_feature("phase2.booking"))])
 """
 
-from fastapi import Depends, Request
+from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_optional_user
@@ -13,18 +13,10 @@ from app.database.session import get_db
 from app.modules.auth.models import User
 from app.modules.phase_management import service
 
-PREVIEW_HEADER = "X-Release-Preview"
 
-
-def request_release(
-    request: Request, db: Session = Depends(get_db), user: User | None = Depends(get_optional_user)
-) -> dict:
-    """The release this request is evaluated against. Only a Super Admin can
-    preview a stored release; from anyone else the header is ignored."""
-    preview_id = request.headers.get(PREVIEW_HEADER)
-    if preview_id and user is not None and user.has_permission("release.manage"):
-        release, snapshot = service.preview_snapshot(db, preview_id)
-        return {"release": release, "snapshot": snapshot, "preview": True}
+def request_release(db: Session = Depends(get_db), _user: User | None = Depends(get_optional_user)) -> dict:
+    """The active release this request is evaluated against. Resolving the
+    (optional) user first means a refusal comes back in her saved language."""
     release, snapshot = service.current_snapshot(db)
     return {"release": release, "snapshot": snapshot, "preview": False}
 

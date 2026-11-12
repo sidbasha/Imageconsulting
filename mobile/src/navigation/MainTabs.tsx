@@ -12,12 +12,14 @@ import { Icon, type IconName } from '../components/Icon';
 import { useDirection } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import { AccountScreen } from '../screens/AccountScreen';
+import { AdminHomeScreen } from '../screens/admin/AdminHomeScreen';
+import { isStaff } from '../screens/admin/common';
 import { HomeScreen } from '../screens/HomeScreen';
 import { HubScreen } from '../screens/HubScreen';
 import { colors, gradients, radius, shadows, spacing } from '../theme';
 import { visibleSections, type Group } from './registry';
 
-export type TabParams = { Today: undefined; Style: undefined; Experts: undefined; Shop: undefined; Me: undefined };
+export type TabParams = { Today: undefined; Style: undefined; Experts: undefined; Shop: undefined; Admin: undefined; Me: undefined };
 
 const Tab = createBottomTabNavigator<TabParams>();
 const TAB_GROUPS: Record<'Style' | 'Experts' | 'Shop', Group[]> = {
@@ -25,7 +27,7 @@ const TAB_GROUPS: Record<'Style' | 'Experts' | 'Shop', Group[]> = {
   Experts: ['experts'],
   Shop: ['library', 'shop'],
 };
-const ICONS: Record<keyof TabParams, IconName> = { Today: 'house', Style: 'sparkles', Experts: 'flower', Shop: 'bag', Me: 'user' };
+const ICONS: Record<keyof TabParams, IconName> = { Today: 'house', Style: 'sparkles', Experts: 'flower', Shop: 'bag', Admin: 'shield', Me: 'user' };
 
 const StyleHub = () => <HubScreen tab="Style" groups={TAB_GROUPS.Style} />;
 const ExpertsHub = () => <HubScreen tab="Experts" groups={TAB_GROUPS.Experts} />;
@@ -34,7 +36,7 @@ const ShopHub = () => <HubScreen tab="Shop" groups={TAB_GROUPS.Shop} />;
 const renderTabBar = (props: BottomTabBarProps) => <FloatingTabBar {...props} />;
 
 export function MainTabs() {
-  const { features } = useApp();
+  const { features, user } = useApp();
   const groups = new Set(visibleSections(features ?? []).map(s => s.group));
   const has = (tab: keyof typeof TAB_GROUPS) => TAB_GROUPS[tab].some(g => groups.has(g));
   return (
@@ -43,6 +45,7 @@ export function MainTabs() {
       {has('Style') ? <Tab.Screen name="Style" component={StyleHub} /> : null}
       {has('Experts') ? <Tab.Screen name="Experts" component={ExpertsHub} /> : null}
       {has('Shop') ? <Tab.Screen name="Shop" component={ShopHub} /> : null}
+      {isStaff(user?.permissions) ? <Tab.Screen name="Admin" component={AdminHomeScreen} /> : null}
       <Tab.Screen name="Me" component={AccountScreen} />
     </Tab.Navigator>
   );

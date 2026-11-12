@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     refresh_token_days: int = 30
     storage_dir: str = "./var/uploads"  # local private storage; S3-compatible backend planned
     model_dir: str = "./var/models"  # on-device vision models, see ai_analysis/engine.py
-    # Browser origins allowed to call the API (the admin panel). Comma-separated in IC_CORS_ORIGINS.
-    cors_origins: str = "http://localhost:5173"
+    # Browser origins allowed to call the API, comma-separated. Empty: the apps are native, no browser client.
+    cors_origins: str = ""
     default_language: str = "en"
     supported_languages: tuple[str, ...] = ("en", "ar")
 

@@ -396,3 +396,35 @@ describe('stylist tools', () => {
     expect(await screen.findByTestId('campaign-k1')).toHaveTextContent('Being reviewed');
   });
 });
+
+test('the Admin tab appears only for staff, and approvals work from inside the app', async () => {
+  const { api, server, user } = start([...PHASE1]);
+  (server.state.account('layla@example.com') as any).permissions = ['users.review', 'orders.manage'];
+  let queue = [{ user_id: 'u9', full_name: 'Huda', email: 'huda@example.com', status: 'pending_review', reasons: [], identity_status: 'unverified' }];
+  let decided: any = null;
+  server.state.routes = {
+    'GET /admin/eligibility?status_filter=pending_review': () => [200, queue],
+    'GET /admin/eligibility': () => [200, queue],
+    'GET /admin/identity/pending': () => [200, []],
+    'GET /admin/orders?status_filter=refund_due': () => [200, []],
+    'POST /admin/eligibility/u9': body => { decided = body; queue = []; return [200, {}]; },
+  };
+  await render(<App api={api} />);
+  await signIn(user);
+  expect(screen.getByTestId('tab-Admin')).toBeOnTheScreen();
+  await user.press(screen.getByTestId('tab-Admin'));
+  expect(await screen.findByTestId('admin-approvals')).toBeOnTheScreen();
+  expect(screen.getByTestId('admin-orders')).toBeOnTheScreen();
+  expect(screen.queryByTestId('admin-settings')).toBeNull(); // not this role's permission
+  await user.press(screen.getByTestId('admin-approvals'));
+  await user.press(await screen.findByTestId('approve-huda@example.com'));
+  expect(await screen.findAllByText('Nothing waiting.')).toHaveLength(2); // documents and eligibility both clear
+  expect(decided).toEqual({ approve: true });
+});
+
+test('customers never see the Admin tab', async () => {
+  const { api, user } = start([...PHASE1]);
+  await render(<App api={api} />);
+  await signIn(user);
+  expect(screen.queryByTestId('tab-Admin')).toBeNull();
+});

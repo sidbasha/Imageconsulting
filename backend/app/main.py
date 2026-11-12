@@ -8,7 +8,6 @@ from app.modules.assessments.router import images as images_router
 from app.modules.assessments.router import router as assessments_router
 from app.modules.auth.router import router as auth_router
 from app.modules.feature_flags.router import router as config_router
-from app.modules.phase_management.router import router as phase_router
 from app.modules.users import router as users
 from app.modules.commerce import router as commerce
 from app.modules.consultations import router as consultations
@@ -26,12 +25,11 @@ def create_app() -> FastAPI:
     if origins:
         # Bearer tokens, not cookies: no credentials mode needed.
         app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"],
-                           allow_headers=["Authorization", "Content-Type", "Accept-Language", "X-Release-Preview"])
+                           allow_headers=["Authorization", "Content-Type", "Accept-Language"])
 
     v1 = APIRouter(prefix="/api/v1")
     v1.include_router(auth_router)
     v1.include_router(config_router)
-    v1.include_router(phase_router)
     v1.include_router(assessments_router)
     v1.include_router(images_router)
     v1.include_router(analysis_router)
