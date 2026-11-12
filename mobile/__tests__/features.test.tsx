@@ -205,3 +205,194 @@ test('profile explains why an account is not eligible and lets her upload an ID'
   expect(await screen.findByTestId('id-sent')).toBeOnTheScreen();
   expect(screen.getByTestId('identity-status')).toHaveTextContent('Being reviewed');
 });
+
+test('try on a hairstyle from the catalogue, in a chosen colour', async () => {
+  const { api, server, user } = start([...PHASE1, 'phase1.hair_preview']);
+  let sent: any = null;
+  server.state.routes = {
+    'GET /tryon/items?kind=hairstyle': () => [200, [{ id: 'h1', kind: 'hairstyle', title: 'Natural curls', category: 'medium', suggested: true }]],
+    'GET /tryon/items/h1/image': () => [200, new Uint8Array([0x89, 0x50, 0x4e, 0x47])],
+    'GET /assessment-images': () => [200, [FACE_PHOTO]],
+    'POST /previews/hairstyle': body => {
+      sent = body;
+      return [200, new Uint8Array([0xff, 0xd8])];
+    },
+  };
+  await render(<App api={api} />);
+  await signIn(user);
+  await user.press(screen.getByTestId('entry-hairStyles'));
+  expect(await screen.findByText('Suits your results')).toBeOnTheScreen();
+  await user.press(screen.getByTestId('item-h1'));
+  await user.press(screen.getByTestId('hair-#8b2e1a'));
+  await user.press(screen.getByTestId('show-try-on'));
+  expect(await screen.findByTestId('try-on-image')).toBeOnTheScreen();
+  expect(sent).toEqual({ image_id: 'p1', item_id: 'h1', colour: '#8b2e1a' });
+});
+
+test('"near me" sends the approximate position, and falls back to city when refused', async () => {
+  const geolocation = jest.requireMock('@react-native-community/geolocation').default;
+  const { api, server, user } = start([...PHASE1, ...PHASE2, 'phase3.location_discovery']);
+  server.state.routes = {
+    'GET /stylists': () => [200, []],
+    'GET /stylists?lat=25.2&lng=55.27&radius_km=25': () => [200, [{ id: 'st1', display_name: 'Near', bio: '', city: 'Dubai', languages: [], specialities: [],
+      rating_avg: 0, rating_count: 0, promoted: false, distance_km: 1.2, services: [] }]],
+  };
+  await render(<App api={api} />);
+  await signIn(user);
+  await user.press(screen.getByTestId('entry-findStylist'));
+  await user.press(await screen.findByTestId('near-me'));
+  expect(await screen.findByText(/1.2 km away/)).toBeOnTheScreen();
+  await user.press(screen.getByTestId('near-me')); // back to city search
+  geolocation.__state.deny = true;
+  await user.press(await screen.findByTestId('near-me'));
+  expect(await screen.findByTestId('no-location')).toBeOnTheScreen();
+  geolocation.__state.deny = false;
+});
+
+describe('stylist tools', () => {
+  const CONSULTATION = {
+    id: 'c1', booking_id: 'b1', kind: 'expert_color', status: 'open', intake: {}, role: 'stylist', stylist: { id: 'st1', display_name: 'Me' },
+    files: [{ id: 'f1', purpose: 'face', caption: null, verdict: null }], report: null, required_intake: [], allowed_purposes: ['face'],
+  };
+  const BOOKING = { id: 'b1', status: 'confirmed', kind: 'expert_color', starts_at: '2026-11-20T10:00:00Z', ends_at: '', price_minor: 50000, currency: 'AED',
+    paid_with: 'payment', stylist: { id: 'st1', display_name: 'Me' }, service: { id: 's1', kind: 'expert_color', title: 'Colour analysis', description: '',
+      price_minor: 50000, currency: 'AED', duration_minutes: 60, mode: 'online' }, address: null, cancelled_by: null };
+  const FEATURES = [...PHASE1, ...PHASE2, 'phase2.stylist_onboarding', 'phase2.consultations', 'phase2.expert_reports', 'phase2.color_workspace',
+    'phase2.digital_draping', 'phase2.paid_promotion', 'phase2.expert_color_analysis'];
+
+  async function openPractice(server: ReturnType<typeof createFakeServer>, routes: typeof server.state.routes) {
+    server.state.routes = {
+      'GET /stylist/application': () => [200, { id: 'st1', display_name: 'Me', bio: 'x', city: 'Dubai', languages: [], status: 'approved', review_note: null }],
+      'GET /stylist/application/credentials': () => [200, []],
+      'GET /stylist/bookings': () => [200, [BOOKING]],
+      'GET /consultations': () => [200, [CONSULTATION]],
+      ...routes,
+    };
+  }
+
+  test('availability: add times for a day and remove a free one', async () => {
+    const { api, server, user } = start(FEATURES);
+    const slots: any[] = [];
+    await openPractice(server, {
+      'GET /stylist/services': () => [200, []],
+      'GET /stylist/slots': () => [200, slots],
+      'POST /stylist/slots': body => {
+        body.starts.forEach((s: string, i: number) => slots.push({ id: `sl${i}`, starts_at: s, ends_at: s, booked: false }));
+        return [201, slots];
+      },
+      'DELETE /stylist/slots/sl0': () => {
+        slots.shift();
+        return [204, undefined];
+      },
+    });
+    await render(<App api={api} />);
+    await signIn(user);
+    await user.press(screen.getByTestId('entry-becomeStylist'));
+    await user.press(await screen.findByTestId('open-practice'));
+    await user.press(await screen.findByTestId('open-services'));
+    await user.type(await screen.findByTestId('slot-date'), '2026-12-01');
+    await user.clear(screen.getByTestId('slot-times'));
+    await user.type(screen.getByTestId('slot-times'), '10:00, 25:00');
+    await user.press(screen.getByTestId('add-slots'));
+    expect(await screen.findByText(/HH:MM/)).toBeOnTheScreen(); // 25:00 is refused before sending
+    await user.clear(screen.getByTestId('slot-times'));
+    await user.type(screen.getByTestId('slot-times'), '10:00, 11:30');
+    await user.press(screen.getByTestId('add-slots'));
+    expect(await screen.findByTestId('remove-slot-sl0')).toBeOnTheScreen();
+    expect(slots).toHaveLength(2);
+    expect(new Date(slots[1].starts_at).getTime() - new Date(slots[0].starts_at).getTime()).toBe(90 * 60 * 1000);
+    await user.press(screen.getByTestId('remove-slot-sl0'));
+    expect(slots).toHaveLength(1);
+  });
+
+  test('report editor: fields follow the template; delivering sends lists and palettes properly', async () => {
+    const { api, server, user } = start(FEATURES);
+    let saved: any = null;
+    let delivered = false;
+    await openPractice(server, {
+      'GET /consultations/c1': () => [200, CONSULTATION],
+      'GET /consultations/c1/files/f1': () => [200, new Uint8Array([0xff, 0xd8])],
+      'GET /consultations/c1/report/template': () => [200, { key: 'expert_color.standard', title: 'Expert colour analysis', sections: [
+        { key: 'season', title: 'Season', type: 'choice', options: ['spring', 'summer', 'autumn', 'winter'], required: true },
+        { key: 'palette', title: 'Your palette', type: 'palette', options: [], required: true },
+        { key: 'clothing', title: 'Clothing', type: 'list', options: [], required: true },
+      ] }],
+      'PUT /consultations/c1/report': body => {
+        saved = body.content;
+        return [200, { status: 'draft' }];
+      },
+      'POST /consultations/c1/report/deliver': () => {
+        delivered = true;
+        return [200, { status: 'delivered' }];
+      },
+    });
+    await render(<App api={api} />);
+    await signIn(user);
+    await user.press(screen.getByTestId('entry-becomeStylist'));
+    await user.press(await screen.findByTestId('open-practice'));
+    await user.press(await screen.findByTestId('report-b1'));
+    await user.press(await screen.findByTestId('field-season-autumn'));
+    await user.type(screen.getByTestId('field-palette'), '#8e3b2c, #c99a5b');
+    expect(await screen.findByTestId('swatch-#c99a5b')).toBeOnTheScreen();
+    await user.type(screen.getByTestId('field-clothing'), 'Rust knitwear\nOlive trousers');
+    await user.press(screen.getByTestId('deliver-report'));
+    expect(await screen.findByTestId('report-delivered')).toBeOnTheScreen();
+    expect(saved).toEqual({ season: 'autumn', palette: ['#8e3b2c', '#c99a5b'], clothing: ['Rust knitwear', 'Olive trousers'] });
+    expect(delivered).toBe(true);
+  });
+
+  test('workspace: without credits she is sent to buy them; with credits she drapes and compares', async () => {
+    const { api, server, user } = start(FEATURES);
+    let credits = 0;
+    let compared: any = null;
+    await openPractice(server, {
+      'GET /consultations/c1': () => [200, CONSULTATION],
+      'POST /workspace/c1/open': () => (credits ? [200, { open: true, credits_used: 1 }]
+        : [402, { error: { code: 'insufficient_credits', message: 'You do not have enough credits.' } }]),
+      'POST /workspace/c1/compare': body => {
+        compared = body;
+        return [200, new Uint8Array([0xff, 0xd8])];
+      },
+    });
+    await render(<App api={api} />);
+    await signIn(user);
+    await user.press(screen.getByTestId('entry-becomeStylist'));
+    await user.press(await screen.findByTestId('open-practice'));
+    await user.press(await screen.findByTestId('workspace-b1'));
+    await user.press(await screen.findByTestId('open-workspace'));
+    expect(await screen.findByTestId('buy-credits')).toBeOnTheScreen();
+    credits = 10;
+    await user.press(screen.getByTestId('open-workspace'));
+    expect(await screen.findByTestId('credits-used')).toHaveTextContent('Credits used for this client: 1');
+    await user.press(screen.getByTestId('drape-#1f3a93'));
+    await user.press(screen.getByTestId('drape-#a3123a'));
+    await user.press(screen.getByTestId('compare'));
+    expect(await screen.findByTestId('workspace-image')).toBeOnTheScreen();
+    expect(compared).toEqual({ file_id: 'f1', colours: ['#1f3a93', '#a3123a'] });
+  });
+
+  test('featured placement: choose a length, pay, and see it waiting for review', async () => {
+    const { api, server, user } = start([...FEATURES, 'phase2.service_payments']);
+    const campaigns: any[] = [];
+    await openPractice(server, {
+      'GET /stylist/promotions': () => [200, campaigns],
+      'POST /stylist/promotions': body => {
+        expect(body.days).toBe(14);
+        return [201, { campaign_id: 'k1', checkout: { order_id: 'o9', status: 'pending', amount_minor: 70000, currency: 'AED', provider: 'sandbox', payment_url: '/sandbox/pay/sbx_9' } }];
+      },
+      'POST /sandbox/pay/sbx_9': () => {
+        campaigns.push({ id: 'k1', status: 'pending_review', starts_at: '2026-11-12T00:00:00Z', ends_at: '2026-11-26T00:00:00Z', impressions: 0 });
+        return [200, { status: 'paid' }];
+      },
+    });
+    await render(<App api={api} />);
+    await signIn(user);
+    await user.press(screen.getByTestId('entry-becomeStylist'));
+    await user.press(await screen.findByTestId('open-practice'));
+    await user.press(await screen.findByTestId('open-featured'));
+    await user.press(await screen.findByTestId('days-14'));
+    await user.press(screen.getByTestId('buy-featured'));
+    await user.press(await screen.findByTestId('sandbox-pay'));
+    expect(await screen.findByTestId('campaign-k1')).toHaveTextContent('Being reviewed');
+  });
+});

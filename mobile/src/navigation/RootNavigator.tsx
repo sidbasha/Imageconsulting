@@ -5,10 +5,15 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
 import { AppText, Button, Screen } from '../components/ui';
-import type { AnalysisKind, PreviewKind, RecommendationCategory } from '../api/client';
+import type { AnalysisKind, PreviewKind, RecommendationCategory, TryOnKind } from '../api/client';
 import { useApp } from '../contexts/AppContext';
 import { AssessmentScreen } from '../screens/AssessmentScreen';
 import { PhotosScreen } from '../screens/PhotosScreen';
+import { TryOnScreen } from '../screens/TryOnScreen';
+import { StylistServicesScreen } from '../screens/StylistServicesScreen';
+import { ReportEditorScreen } from '../screens/ReportEditorScreen';
+import { WorkspaceScreen } from '../screens/WorkspaceScreen';
+import { FeaturedScreen } from '../screens/FeaturedScreen';
 import { PhotoAnalysisScreen } from '../screens/PhotoAnalysisScreen';
 import { PreviewScreen } from '../screens/PreviewScreen';
 import { LibraryScreen } from '../screens/LibraryScreen';
@@ -40,7 +45,7 @@ export type AppStackParams = {
   Photos: undefined;
   PhotoAnalysis: { kind: AnalysisKind };
   Preview: { kind: PreviewKind };
-  Library: { kind?: 'guide' | 'report' } | undefined;
+  Library: { kind?: 'guide' | 'report' | 'workspace_credits' } | undefined;
   Plans: { audience?: 'customer' | 'consultant' } | undefined;
   Retail: undefined;
   Rewards: undefined;
@@ -55,6 +60,11 @@ export type AppStackParams = {
   Thread: { id: string; name: string };
   StylistApplication: undefined;
   Practice: undefined;
+  TryOn: { kind: TryOnKind };
+  StylistServices: undefined;
+  ReportEditor: { id: string };
+  Workspace: { id: string };
+  Featured: undefined;
 };
 
 const AuthStack = createNativeStackNavigator<AuthStackParams>();
@@ -113,6 +123,11 @@ export function RootNavigator() {
           <AppStack.Screen name="Thread" component={ThreadScreen} />
           <AppStack.Screen name="StylistApplication" component={StylistApplicationScreen} />
           <AppStack.Screen name="Practice" component={PracticeScreen} />
+          <AppStack.Screen name="TryOn" component={TryOnScreen} />
+          <AppStack.Screen name="StylistServices" component={StylistServicesScreen} />
+          <AppStack.Screen name="ReportEditor" component={ReportEditorScreen} />
+          <AppStack.Screen name="Workspace" component={WorkspaceScreen} />
+          <AppStack.Screen name="Featured" component={FeaturedScreen} />
         </AppStack.Navigator>
       ) : (
         <AuthStack.Navigator screenOptions={{ ...screenOptions, animation }}>

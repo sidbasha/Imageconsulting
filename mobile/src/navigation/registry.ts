@@ -17,6 +17,7 @@ export type Target =
   | { screen: 'PhotoAnalysis'; params: { kind: 'face_shape' | 'body_shape' | 'seasonal_color' } }
   | { screen: 'Preview'; params: { kind: 'hair-colour' | 'outfit-colour' | 'makeup' } }
   | { screen: 'Library'; params?: { kind: 'guide' | 'report' } }
+  | { screen: 'TryOn'; params: { kind: 'garment' | 'hairstyle' } }
   | { screen: 'Plans'; params?: { audience: 'customer' | 'consultant' } }
   | { screen: 'Offers'; params?: { show: 'offers' | 'vouchers' } }
   | { screen: 'Stylists'; params?: { kind: string } }
@@ -38,8 +39,10 @@ export const ENTRIES: Entry[] = [
   { id: 'seasonalColor', feature: 'phase1.seasonal_color', group: 'assessment', target: { screen: 'Assessment', params: { key: 'seasonal_color' } } },
 
   { id: 'outfits', feature: 'phase1.outfit_recommendations', group: 'recommendations', target: { screen: 'Recommendations', params: { category: 'outfits' } } },
-  { id: 'tryOn', feature: 'phase1.virtual_tryon', group: 'recommendations', target: { screen: 'Preview', params: { kind: 'outfit-colour' } } },
+  { id: 'tryOn', feature: 'phase1.virtual_tryon', group: 'recommendations', target: { screen: 'TryOn', params: { kind: 'garment' } } },
+  { id: 'outfitColour', feature: 'phase1.virtual_tryon', group: 'recommendations', target: { screen: 'Preview', params: { kind: 'outfit-colour' } } },
   { id: 'hair', feature: 'phase1.hair_preview', group: 'recommendations', target: { screen: 'Recommendations', params: { category: 'hair' } } },
+  { id: 'hairStyles', feature: 'phase1.hair_preview', group: 'recommendations', target: { screen: 'TryOn', params: { kind: 'hairstyle' } } },
   { id: 'hairColour', feature: 'phase1.hair_preview', group: 'recommendations', target: { screen: 'Preview', params: { kind: 'hair-colour' } } },
   { id: 'eyewear', feature: 'phase1.eyewear', group: 'recommendations', target: { screen: 'Recommendations', params: { category: 'eyewear' } } },
   { id: 'shopping', feature: 'phase1.retail_links', group: 'recommendations', target: { screen: 'Retail' } },
@@ -54,7 +57,6 @@ export const ENTRIES: Entry[] = [
   { id: 'makeupAudit', feature: 'phase2.makeup_audit', group: 'experts', target: { screen: 'Stylists', params: { kind: 'makeup_audit' } } },
   { id: 'expertColor', feature: 'phase2.expert_color_analysis', group: 'experts', target: { screen: 'Stylists', params: { kind: 'expert_color' } } },
   { id: 'personalShopper', feature: 'phase3.personal_shopper', group: 'experts', target: { screen: 'Stylists', params: { kind: 'personal_shopper_day' } } },
-  // Location search needs the device's position (a geolocation library, not added yet); until then this lists by city.
   { id: 'nearbyStylists', feature: 'phase3.location_discovery', group: 'experts', target: { screen: 'Stylists' } },
 
   { id: 'guides', feature: 'phase1.digital_guides', group: 'library', target: { screen: 'Library', params: { kind: 'guide' } } },

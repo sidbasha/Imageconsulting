@@ -34,6 +34,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your approximate location is used to show stylists and offers near you. It is not stored.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Take a photo for your style assessment.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

@@ -162,6 +162,16 @@ def add_slots(body: SlotsIn, user: User = Depends(get_current_user), db: Session
     return [{"id": s.id, "starts_at": s.starts_at, "ends_at": s.ends_at} for s in service.add_slots(db, profile, body.starts, body.minutes)]
 
 
+@practice.get("/slots")
+def my_slots(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
+    """Future availability, booked or free."""
+    profile = service.require_profile(db, user)
+    service.release_lapsed_holds(db)
+    return [{"id": s.id, "starts_at": s.starts_at, "ends_at": s.ends_at, "booked": s.booking_id is not None}
+            for s in db.scalars(select(AvailabilitySlot).where(AvailabilitySlot.profile_id == profile.id,
+                                                               AvailabilitySlot.starts_at > service.now()).order_by(AvailabilitySlot.starts_at))]
+
+
 @practice.delete("/slots/{slot_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_slot(slot_id: uuid.UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
     profile = service.require_profile(db, user)

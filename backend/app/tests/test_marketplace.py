@@ -123,6 +123,8 @@ def test_book_pay_consult_report_review(client, owner, customer, phase2, storage
     stylist = make_stylist(client, owner)
     found = client.get(f"{API}/stylists", headers=customer).json()
     assert [s["display_name"] for s in found] == ["Stylist"]
+    own = client.get(f"{API}/stylist/slots", headers=stylist["headers"]).json()
+    assert len(own) == 3 and not any(s["booked"] for s in own)
     detail = client.get(f"{API}/stylists/{stylist['profile_id']}", headers=customer).json()
     assert len(detail["slots"]) == 3 and detail["services"][0]["price_minor"] == 25000
 

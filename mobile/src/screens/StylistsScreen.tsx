@@ -3,7 +3,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet } from 'react-nati
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
-import { AppText, Card, Chips, ErrorBanner, Screen, ScreenHeader, TextField, money } from '../components/ui';
+import { AppText, Button, Card, Chips, ErrorBanner, Screen, ScreenHeader, TextField, money } from '../components/ui';
+import { approximatePosition, type Position } from '../location';
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
 import { colors, spacing } from '../theme';
@@ -11,15 +12,36 @@ import { errorMessage } from './errorMessage';
 import { useLoad } from './useLoad';
 
 type Props = NativeStackScreenProps<AppStackParams, 'Stylists'>;
+const RADIUS_KM = 25;
 const KINDS = ['consultation', 'occasion_audit', 'wardrobe_audit', 'makeup_audit', 'expert_color', 'personal_shopper_day'];
 
 /** Verified stylists (row 18), filtered by service and city. */
 export function StylistsScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
-  const { api, language } = useApp();
+  const { api, language, features } = useApp();
   const [kind, setKind] = useState<string | null>(route.params?.kind ?? null);
   const [city, setCity] = useState('');
-  const { data, error, loading } = useLoad(() => api.stylists({ kind: kind ?? undefined, city: city.trim() || undefined }), [api, kind, city, language]);
+  const [near, setNear] = useState<Position | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [noLocation, setNoLocation] = useState(false);
+  const locationOn = (features ?? []).includes('phase3.location_discovery');
+  const { data, error, loading } = useLoad(
+    () => api.stylists({ kind: kind ?? undefined, city: near ? undefined : city.trim() || undefined,
+      ...(near ? { lat: near.lat, lng: near.lng, radius_km: RADIUS_KM } : {}) }),
+    [api, kind, city, near, language],
+  );
+
+  const toggleNear = async () => {
+    if (near) {
+      setNear(null);
+      return;
+    }
+    setLocating(true);
+    const position = await approximatePosition();
+    setLocating(false);
+    setNoLocation(!position);
+    setNear(position);
+  };
 
   return (
     <Screen testID="stylists">
@@ -27,7 +49,11 @@ export function StylistsScreen({ route, navigation }: Props) {
         <ScreenHeader title={t('stylists.title')} onBack={() => navigation.goBack()} />
         <Chips value={kind} onChange={v => setKind(v === kind ? null : v)} testID="kind"
           options={KINDS.map(k => ({ value: k, label: t(`services.${k}`) }))} />
-        <TextField label={t('stylists.city')} value={city} onChangeText={setCity} testID="city" />
+        {locationOn ? (
+          <Button kind="link" label={near ? t('stylists.anywhere') : t('stylists.nearMe')} onPress={toggleNear} loading={locating} testID="near-me" />
+        ) : null}
+        {noLocation ? <AppText variant="small" muted testID="no-location">{t('stylists.noLocation')}</AppText> : null}
+        {!near ? <TextField label={t('stylists.city')} value={city} onChangeText={setCity} testID="city" /> : null}
         {loading && !data ? <ActivityIndicator color={colors.primary} /> : null}
         <ErrorBanner message={error ? errorMessage(error, t) : null} />
         {data && data.length === 0 ? <AppText muted>{t('stylists.none')}</AppText> : null}

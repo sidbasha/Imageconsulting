@@ -70,7 +70,7 @@
     "bodyShape": "Body shape",
     "seasonalColor": "Seasonal colour palette",
     "outfits": "Outfit recommendations",
-    "tryOn": "Virtual outfit try-on",
+    "tryOn": "Try on outfits",
     "hair": "Hairstyle recommendations",
     "eyewear": "Eyewear recommendations",
     "shopping": "Shop the look",
@@ -95,7 +95,9 @@
     "redeem": "Redeem points",
     "hairColour": "Try a hair colour",
     "profile": "My profile",
-    "becomeStylist": "Become a stylist"
+    "becomeStylist": "Become a stylist",
+    "outfitColour": "Try outfit colours",
+    "hairStyles": "Try a hairstyle"
   },
   "assessment": {
     "start": "Start",
@@ -271,7 +273,8 @@
   "library": {
     "title": {
       "guide": "Guides and palettes",
-      "report": "Reports"
+      "report": "Reports",
+      "workspace_credits": "Workspace credits"
     },
     "free": "Free",
     "open": "Open",
@@ -329,7 +332,8 @@
     "none": "Nothing here right now.",
     "sponsored": "Sponsored by {{name}}",
     "visit": "Visit",
-    "claim": "Get the code"
+    "claim": "Get the code",
+    "nearMe": "Show offers near me"
   },
   "services": {
     "consultation": "Consultation",
@@ -346,7 +350,10 @@
     "featured": "Featured",
     "rating": "{{rating}} ★ ({{count}})",
     "distance": "{{km}} km away",
-    "testimonials": "What clients say"
+    "testimonials": "What clients say",
+    "nearMe": "Near me",
+    "anywhere": "Search by city instead",
+    "noLocation": "Your location is not available. Search by city instead."
   },
   "booking": {
     "title": "Book",
@@ -458,6 +465,102 @@
     "title": "My practice",
     "membership": "Consultant membership",
     "none": "No bookings yet.",
-    "complete": "Mark as completed"
+    "complete": "Mark as completed",
+    "services": "Services and availability",
+    "featured": "Be featured in search",
+    "report": "Write report",
+    "workspace": "Colour workspace"
+  },
+  "tryOn": {
+    "title": {
+      "garment": "Try on outfits",
+      "hairstyle": "Try a hairstyle"
+    },
+    "intro": {
+      "garment": "Pick a piece and see it on your full-length photo.",
+      "hairstyle": "Pick a cut and style and see it on your face photo."
+    },
+    "empty": "Nothing to try yet.",
+    "suggested": "Suits your results",
+    "keepColour": "Colour (optional; leave empty to keep the style's colour)",
+    "disclaimer": {
+      "garment": "A fitted picture of the piece, not how it will drape on you. What you are wearing may show around it.",
+      "hairstyle": "A preview. It looks most natural when the new style covers at least as much as your current hair."
+    }
+  },
+  "services_admin": {
+    "title": "Services and availability",
+    "add": "Add a service",
+    "name": "Name",
+    "price": "Price (AED)",
+    "minutes": "Length in minutes",
+    "save": "Add service",
+    "pause": "Pause",
+    "resume": "Offer again",
+    "fill": "Choose a service and enter a name and price.",
+    "availability": "Your available times",
+    "booked": "booked",
+    "remove": "Remove",
+    "date": "Date",
+    "times": "Start times",
+    "addTimes": "Add these times",
+    "badTimes": "Enter the date as YYYY-MM-DD and times as HH:MM, separated by commas."
+  },
+  "report": {
+    "aboutClient": "About the client",
+    "saveDraft": "Save draft",
+    "deliver": "Deliver to the client",
+    "saved": "Draft saved.",
+    "delivered": "Delivered. The client can now read it.",
+    "onePerLine": "One item per line",
+    "paletteHint": "Colour codes, e.g. #8e3b2c, #c99a5b",
+    "options": {
+      "suitable": "Suitable",
+      "adjust": "Suitable with changes",
+      "not_suitable": "Not suitable",
+      "spring": "Spring",
+      "summer": "Summer",
+      "autumn": "Autumn",
+      "winter": "Winter",
+      "warm": "Warm",
+      "cool": "Cool",
+      "neutral": "Neutral",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "gold": "Gold",
+      "silver": "Silver",
+      "rose_gold": "Rose gold",
+      "mixed": "Mixed"
+    }
+  },
+  "workspace": {
+    "title": "Colour workspace",
+    "noPhoto": "The client has not shared a face photo yet.",
+    "openExplain": "Opening the workspace for a new client uses credits.",
+    "open": "Open workspace",
+    "credits": "Credits used for this client: {{count}}",
+    "buyCredits": "Buy credits",
+    "pick": "Choose drape colours (up to 8)",
+    "drapeOne": "Drape the first colour",
+    "compare": "Compare side by side",
+    "reading": "Automated reading",
+    "readingNote": "Indicative, a starting point for your own assessment.",
+    "writeReport": "Write the report"
+  },
+  "featured": {
+    "title": "Be featured",
+    "intro": "Appear at the top of stylist search. An administrator reviews each placement before it starts.",
+    "days": "How long",
+    "daysOption": "{{count}} days",
+    "buy": "Continue to payment",
+    "seen": "Shown {{count}} times",
+    "status": {
+      "pending_payment": "Awaiting payment",
+      "pending_review": "Being reviewed",
+      "active": "Running",
+      "rejected": "Not approved",
+      "cancelled": "Cancelled"
+    }
   }
 }

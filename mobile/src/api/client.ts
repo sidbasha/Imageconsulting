@@ -145,6 +145,14 @@ export type Campaign = { id: string; advertiser: string; placement: string; titl
 export type Voucher = { id: string; partner: string; title: string; terms: string; ends_at: string; remaining: number | null; code: string | null };
 
 export type FilePart = PhotoFile;
+export type TryOnKind = 'garment' | 'hairstyle';
+export type TryOnItem = { id: string; kind: TryOnKind; title: string; category: string | null; suggested: boolean };
+export type Slot = { id: string; starts_at: string; ends_at: string; booked: boolean };
+export type TemplateSection = { key: string; title: string; type: 'decision' | 'text' | 'list' | 'choice' | 'palette'; options: string[]; required: boolean };
+export type ReportTemplate = { key: string; title: string; sections: TemplateSection[] };
+export type Indicative = { indicative: true; season: string; scores: Record<string, number>; swatches: Record<string, string>; notes: string[] };
+export type FeaturedCampaign = { id: string; status: string; starts_at: string; ends_at: string; impressions: number };
+export type Near = { lat?: number; lng?: number };
 
 const BASE64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
@@ -312,7 +320,8 @@ export function createApiClient(options: Options) {
       throw await toError(response);
     }
     const bytes = new Uint8Array(await response.arrayBuffer());
-    return `data:image/jpeg;base64,${toBase64(bytes)}`;
+    const type = response.headers?.get?.('content-type') ?? 'image/jpeg';
+    return `data:${type};base64,${toBase64(bytes)}`;
   }
 
   async function startSession(path: string, body: unknown): Promise<User> {
@@ -442,8 +451,8 @@ export function createApiClient(options: Options) {
     redeem: (key: string) => request<{ redeemed: string; balance: number }>('POST', `/rewards/redeem/${key}`),
 
     // ---------- marketplace ----------
-    stylists: (filters: { kind?: string; city?: string; language?: string } = {}) => {
-      const query = Object.entries(filters).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&');
+    stylists: (filters: { kind?: string; city?: string; language?: string; lat?: number; lng?: number; radius_km?: number } = {}) => {
+      const query = Object.entries(filters).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&');
       return request<StylistSummary[]>('GET', `/stylists${query ? `?${query}` : ''}`);
     },
     stylist: (id: string) => request<StylistDetail>('GET', `/stylists/${id}`),
@@ -489,10 +498,44 @@ export function createApiClient(options: Options) {
     practiceBookings: () => request<Booking[]>('GET', '/stylist/bookings'),
     completeBooking: (id: string) => request<Booking>('POST', `/stylist/bookings/${id}/complete`),
 
+    // ---------- try-on (rows 11, 12) ----------
+    tryOnItems: (kind: TryOnKind) => request<TryOnItem[]>('GET', `/tryon/items?kind=${kind}`),
+    tryOnImage: (id: string) => requestImage('GET', `/tryon/items/${id}/image`, undefined),
+    tryOn: (kind: TryOnKind, imageId: string, itemId: string, colour?: string) =>
+      requestImage('POST', `/previews/${kind}`, { image_id: imageId, item_id: itemId, colour }),
+
+    // ---------- stylist practice ----------
+    myServices: () => request<(StylistService & { is_active: boolean })[]>('GET', '/stylist/services'),
+    addService: (input: Omit<StylistService, 'id' | 'currency'> & { is_active?: boolean }) =>
+      request<StylistService>('POST', '/stylist/services', { body: input }),
+    updateService: (id: string, input: Omit<StylistService, 'id' | 'currency'> & { is_active: boolean }) =>
+      request<StylistService>('PUT', `/stylist/services/${id}`, { body: input }),
+    mySlots: () => request<Slot[]>('GET', '/stylist/slots'),
+    addSlots: (starts: string[], minutes: number) => request<Slot[]>('POST', '/stylist/slots', { body: { starts, minutes } }),
+    deleteSlot: (id: string) => request<void>('DELETE', `/stylist/slots/${id}`),
+    reportTemplate: (consultationId: string) => request<ReportTemplate>('GET', `/consultations/${consultationId}/report/template`),
+    saveReport: (consultationId: string, content: Record<string, unknown>) =>
+      request<{ status: string }>('PUT', `/consultations/${consultationId}/report`, { body: { content } }),
+    deliverReport: (consultationId: string) => request<{ status: string }>('POST', `/consultations/${consultationId}/report/deliver`),
+    setVerdict: (consultationId: string, fileId: string, verdict: string, note?: string) =>
+      request<unknown>('PUT', `/consultations/${consultationId}/files/${fileId}/verdict`, { body: { verdict, note } }),
+    consultationFile: (consultationId: string, fileId: string) => requestImage('GET', `/consultations/${consultationId}/files/${fileId}`, undefined),
+    openWorkspace: (consultationId: string) => request<{ open: boolean; credits_used: number }>('POST', `/workspace/${consultationId}/open`),
+    drape: (consultationId: string, fileId: string, colour: string) =>
+      requestImage('GET', `/workspace/${consultationId}/drape?file_id=${fileId}&colour=${encodeURIComponent(colour)}`, undefined),
+    compareDrapes: (consultationId: string, fileId: string, colours: string[]) =>
+      requestImage('POST', `/workspace/${consultationId}/compare`, { file_id: fileId, colours }),
+    indicativeColour: (consultationId: string, fileId: string) =>
+      request<Indicative>('POST', `/workspace/${consultationId}/indicative?file_id=${fileId}`),
+    buyFeatured: (startsAt: string, days: number) =>
+      request<{ campaign_id: string; checkout: Checkout }>('POST', '/stylist/promotions', { body: { starts_at: startsAt, days } }),
+    myFeatured: () => request<FeaturedCampaign[]>('GET', '/stylist/promotions'),
+
     // ---------- promotions ----------
-    promotions: (placement = 'home_banner') => request<Campaign[]>('GET', `/promotions?placement=${placement}`),
+    promotions: (placement = 'home_banner', near: Near = {}) =>
+      request<Campaign[]>('GET', `/promotions?placement=${placement}${near.lat !== undefined ? `&lat=${near.lat}&lng=${near.lng}` : ''}`),
     promotionClick: (id: string) => request<{ url: string }>('POST', `/promotions/${id}/click`),
-    vouchers: () => request<Voucher[]>('GET', '/vouchers'),
+    vouchers: (near: Near = {}) => request<Voucher[]>('GET', `/vouchers${near.lat !== undefined ? `?lat=${near.lat}&lng=${near.lng}` : ''}`),
     myVouchers: () => request<Voucher[]>('GET', '/vouchers/mine'),
     claimVoucher: (id: string) => request<Voucher>('POST', `/vouchers/${id}/claim`),
 

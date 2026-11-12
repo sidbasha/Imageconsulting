@@ -7,6 +7,7 @@ import { AppText, Button, Card, ErrorBanner, Screen, ScreenHeader } from '../com
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
 import { colors, spacing } from '../theme';
+import { approximatePosition, type Position } from '../location';
 import { errorMessage } from './errorMessage';
 import { useLoad } from './useLoad';
 
@@ -16,9 +17,11 @@ type Props = NativeStackScreenProps<AppStackParams, 'Offers'>;
 export function OffersScreen({ route, navigation }: Props) {
   const show = route.params?.show ?? 'offers';
   const { t } = useTranslation();
-  const { api, language } = useApp();
-  const offers = useLoad(() => (show === 'offers' ? api.promotions('offers') : Promise.resolve([])), [api, show, language]);
-  const vouchers = useLoad(() => (show === 'vouchers' ? api.vouchers() : Promise.resolve([])), [api, show, language]);
+  const { api, language, features } = useApp();
+  const [near, setNear] = useState<Position | null>(null);
+  const geo = (features ?? []).includes('phase3.geo_promotions');
+  const offers = useLoad(() => (show === 'offers' ? api.promotions('offers', near ?? {}) : Promise.resolve([])), [api, show, language, near]);
+  const vouchers = useLoad(() => (show === 'vouchers' ? api.vouchers(near ?? {}) : Promise.resolve([])), [api, show, language, near]);
   const [codes, setCodes] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState<unknown>(null);
 
@@ -45,6 +48,10 @@ export function OffersScreen({ route, navigation }: Props) {
     <Screen testID="offers">
       <ScrollView contentContainerStyle={styles.content}>
         <ScreenHeader title={t(`offers.title.${show}`)} onBack={() => navigation.goBack()} />
+        {geo && !near ? (
+          <Button kind="link" label={t('offers.nearMe')} testID="offers-near-me"
+            onPress={async () => setNear(await approximatePosition())} />
+        ) : null}
         {loading ? <ActivityIndicator color={colors.primary} /> : null}
         <ErrorBanner message={error ? errorMessage(error, t) : null} />
         {!loading && (offers.data ?? []).length + (vouchers.data ?? []).length === 0 ? <AppText muted>{t('offers.none')}</AppText> : null}
