@@ -388,6 +388,29 @@ def test_guided_draping_studio_walks_the_steps_to_a_type(client, owner, customer
     assert lips.status_code == 200 and lips.content[:2] == b"\xff\xd8"
 
 
+def test_consultant_sees_her_clients_with_photos_and_colour_types(client, owner, customer, phase2, storage):
+    headers, cid, face = _open_workspace(client, owner, customer)
+    session = client.post(f"{API}/workspace/{cid}/draping", json={"file_id": face}, headers=headers).json()
+    while session["status"] == "in_progress":
+        step = session["next"]
+        answer = {"step": "confirm", "pick": step["options"][0]["key"]} if step["step"] == "confirm" else \
+            {"step": step["step"], "pair": step["pair"]["index"], "pick": "b"}
+        session = client.post(f"{API}/workspace/{cid}/draping/{session['id']}/answer", json=answer, headers=headers).json()
+
+    listed = client.get(f"{API}/stylist/clients", headers=headers).json()
+    assert len(listed) == 1 and listed[0]["consultations"] == 1 and listed[0]["photos"] == 1
+    assert listed[0]["colour_type"]["key"] == session["result"]["colour_type"]["key"]
+    detail = client.get(f"{API}/stylist/clients/{listed[0]['id']}", headers=headers).json()
+    assert detail["photos"][0]["id"] == face and detail["consultations"][0]["id"] == cid
+    assert detail["analyses"][0]["status"] == "complete"
+
+    # Another consultant, and the customer herself, cannot see them.
+    other = make_stylist(client, owner, email="other@example.com")
+    assert client.get(f"{API}/stylist/clients", headers=other["headers"]).json() == []
+    assert client.get(f"{API}/stylist/clients/{listed[0]['id']}", headers=other["headers"]).status_code == 404
+    assert client.get(f"{API}/stylist/clients", headers=customer).status_code == 403
+
+
 # ---------- rewards (43, 44) ----------
 
 def test_points_are_earned_and_redeemed_for_a_free_consultation(client, owner, customer, phase2, db):

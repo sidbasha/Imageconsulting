@@ -55,7 +55,7 @@ def create_app() -> FastAPI:
         commerce.router, commerce.library, commerce.files, commerce.retail, commerce.admin,
         rewards.router, rewards.redeem, rewards.admin,
         marketplace.application, marketplace.practice, marketplace.discovery, marketplace.bookings, marketplace.admin,
-        consultations.router, consultations.workspace, consultations.admin,
+        consultations.router, consultations.workspace, consultations.clients, consultations.admin,
         messaging.router, messaging.admin,
         promotions.featured, promotions.ads, promotions.vouchers, promotions.admin,
     ):

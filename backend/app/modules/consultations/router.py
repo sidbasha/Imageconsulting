@@ -414,6 +414,78 @@ def draping_edit(session_id: uuid.UUID, body: SessionEditIn, request: Request, c
     return _session_out(session, pick_language(request))
 
 
+# ---------------------------------------------------------------- the consultant's clients
+
+clients = APIRouter(prefix="/stylist/clients", tags=["stylist: clients"], dependencies=[Depends(require_feature("phase2.consultations"))])
+
+
+def _own_profile(db: Session, user: User) -> StylistProfile:
+    if not user.has_permission("stylist.practice"):
+        raise AppError(403, "permission_denied")
+    profile = db.execute(select(StylistProfile).where(StylistProfile.user_id == user.id)).scalar_one_or_none()
+    if profile is None:
+        raise AppError(404, "not_found")
+    return profile
+
+
+def _type_title(key: str | None, language: str) -> str | None:
+    from app.modules.ai_analysis import colour_types
+
+    return None if key is None else colour_types.BY_KEY[key].title.get(language, colour_types.BY_KEY[key].title["en"])
+
+
+@clients.get("")
+def client_list(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
+    """Everyone who has had a consultation with this consultant, most recent first."""
+    profile = _own_profile(db, user)
+    language = pick_language(request)
+    consultations = list(db.scalars(select(Consultation).where(Consultation.profile_id == profile.id)
+                                    .order_by(Consultation.created_at.desc())))
+    sessions = list(db.scalars(select(DrapingSession).where(DrapingSession.profile_id == profile.id, DrapingSession.status == "complete")
+                               .order_by(DrapingSession.updated_at.desc())))
+    faces = db.execute(select(ConsultationFile.consultation_id).where(
+        ConsultationFile.consultation_id.in_([c.id for c in consultations]), ConsultationFile.purpose == "face")).scalars().all()
+    out: dict = {}
+    for c in consultations:
+        entry = out.get(c.customer_id)
+        if entry is None:
+            customer = db.get(User, c.customer_id)
+            latest = next((s for s in sessions if s.customer_id == c.customer_id), None)
+            entry = out[c.customer_id] = {
+                "id": c.customer_id, "name": customer.full_name, "last_seen": c.created_at, "consultations": 0, "photos": 0,
+                "colour_type": latest and {"key": latest.colour_type, "title": _type_title(latest.colour_type, language)},
+            }
+        entry["consultations"] += 1
+        entry["photos"] += sum(1 for f in faces if f == c.id)
+    return list(out.values())
+
+
+@clients.get("/{customer_id}")
+def client_detail(customer_id: uuid.UUID, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    """One client: her consultations with this consultant, shared face photos, draping results and reports."""
+    profile = _own_profile(db, user)
+    language = pick_language(request)
+    consultations = list(db.scalars(select(Consultation).where(Consultation.profile_id == profile.id, Consultation.customer_id == customer_id)
+                                    .order_by(Consultation.created_at.desc())))
+    if not consultations:
+        raise AppError(404, "not_found")
+    ids = [c.id for c in consultations]
+    reports = {r.consultation_id: r for r in db.scalars(select(ExpertReport).where(ExpertReport.consultation_id.in_(ids)))}
+    photos = db.scalars(select(ConsultationFile).where(ConsultationFile.consultation_id.in_(ids), ConsultationFile.purpose == "face")
+                        .order_by(ConsultationFile.created_at.desc()))
+    sessions = db.scalars(select(DrapingSession).where(DrapingSession.consultation_id.in_(ids)).order_by(DrapingSession.created_at.desc()))
+    customer = db.get(User, customer_id)
+    return {
+        "id": customer_id, "name": customer.full_name,
+        "consultations": [{"id": c.id, "kind": c.kind, "status": c.status, "created_at": c.created_at,
+                           "report": reports[c.id].status if c.id in reports else None} for c in consultations],
+        "photos": [{"id": f.id, "consultation_id": f.consultation_id, "created_at": f.created_at} for f in photos],
+        "analyses": [{"id": s.id, "consultation_id": s.consultation_id, "file_id": s.file_id, "status": s.status,
+                      "created_at": s.created_at, "colour_type": s.colour_type and {"key": s.colour_type, "title": _type_title(s.colour_type, language)},
+                      "custom_palette": s.custom_palette, "notes": s.notes} for s in sessions],
+    }
+
+
 # ---------------------------------------------------------------- admin: report templates (56)
 
 admin = APIRouter(prefix="/admin/report-templates", tags=["admin: report templates"])

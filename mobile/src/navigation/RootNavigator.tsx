@@ -14,6 +14,7 @@ import { StylistServicesScreen } from '../screens/StylistServicesScreen';
 import { ReportEditorScreen } from '../screens/ReportEditorScreen';
 import { WorkspaceScreen } from '../screens/WorkspaceScreen';
 import { DrapingStudioScreen } from '../screens/DrapingStudioScreen';
+import { ClientDetailScreen, ClientsScreen } from '../screens/ClientsScreen';
 import { FeaturedScreen } from '../screens/FeaturedScreen';
 import { PhotoAnalysisScreen } from '../screens/PhotoAnalysisScreen';
 import { PreviewScreen } from '../screens/PreviewScreen';
@@ -68,6 +69,8 @@ export type AppStackParams = {
   ReportEditor: { id: string };
   Workspace: { id: string };
   DrapingStudio: { id: string; fileId: string; sessionId?: string };
+  Clients: undefined;
+  ClientDetail: { id: string; name: string };
   Featured: undefined;
   AdminApprovals: undefined;
   AdminStylists: undefined;
@@ -143,6 +146,8 @@ export function RootNavigator() {
           <AppStack.Screen name="ReportEditor" component={ReportEditorScreen} />
           <AppStack.Screen name="Workspace" component={WorkspaceScreen} />
           <AppStack.Screen name="DrapingStudio" component={DrapingStudioScreen} />
+          <AppStack.Screen name="Clients" component={ClientsScreen} />
+          <AppStack.Screen name="ClientDetail" component={ClientDetailScreen} />
           <AppStack.Screen name="Featured" component={FeaturedScreen} />
           <AppStack.Screen name="AdminApprovals" component={AdminApprovalsScreen} />
           <AppStack.Screen name="AdminStylists" component={AdminStylistsScreen} />

@@ -178,6 +178,15 @@ export type DrapingSession = {
   next?: DrapingStep | null;
   result?: { colour_type: ColourTypeSummary; scores: { key: ColourTypeKey; title: string; score: number }[] };
 };
+export type ClientSummary = { id: string; name: string; last_seen: string; consultations: number; photos: number;
+  colour_type: { key: ColourTypeKey; title: string } | null };
+export type ClientDetail = {
+  id: string; name: string;
+  consultations: { id: string; kind: string; status: string; created_at: string; report: 'draft' | 'delivered' | null }[];
+  photos: { id: string; consultation_id: string; created_at: string }[];
+  analyses: { id: string; consultation_id: string; file_id: string | null; status: 'in_progress' | 'complete'; created_at: string;
+    colour_type: { key: ColourTypeKey; title: string } | null; custom_palette: string[] | null; notes: string | null }[];
+};
 export type DrapingAnswer = { step: DrapingStep['step']; pair?: number; pick: string };
 export type FeaturedCampaign = { id: string; status: string; starts_at: string; ends_at: string; impressions: number };
 export type Near = { lat?: number; lng?: number };
@@ -552,6 +561,8 @@ export function createApiClient(options: Options) {
     setVerdict: (consultationId: string, fileId: string, verdict: string, note?: string) =>
       request<unknown>('PUT', `/consultations/${consultationId}/files/${fileId}/verdict`, { body: { verdict, note } }),
     consultationFile: (consultationId: string, fileId: string) => requestImage('GET', `/consultations/${consultationId}/files/${fileId}`, undefined),
+    clients: () => request<ClientSummary[]>('GET', '/stylist/clients'),
+    clientDetail: (id: string) => request<ClientDetail>('GET', `/stylist/clients/${id}`),
     colourTypes: () => request<ColourTypeListItem[]>('GET', '/colour-types'),
     colourType: (key: string) => request<ColourTypeSummary>('GET', `/colour-types/${key}`),
     drapePair: (consultationId: string, fileId: string, a: string, b: string) =>

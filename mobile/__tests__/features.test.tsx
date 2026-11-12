@@ -575,6 +575,34 @@ describe('each role sees only its own app', () => {
     expect(screen.queryByTestId('menu-becomeStylist')).toBeNull();
   });
 
+  test('stylists open a client and see her photos, analyses and sessions', async () => {
+    const { api, server, user } = start([...PHASE1, ...PHASE2, 'phase2.consultations']);
+    Object.assign(server.state.account('layla@example.com'), { role: 'stylist', permissions: ['stylist.practice'] });
+    server.state.routes = {
+      'GET /stylist/bookings': () => [200, []],
+      'GET /stylist/clients': () => [200, [{ id: 'u9', name: 'Mariam Saeed', last_seen: '2026-11-12T00:00:00Z', consultations: 2, photos: 1,
+        colour_type: { key: 'deep_autumn', title: 'Deep Autumn' } }]],
+      'GET /stylist/clients/u9': () => [200, {
+        id: 'u9', name: 'Mariam Saeed',
+        consultations: [{ id: 'c1', kind: 'expert_color', status: 'open', created_at: '2026-11-12T00:00:00Z', report: 'draft' }],
+        photos: [{ id: 'f1', consultation_id: 'c1', created_at: '2026-11-12T00:00:00Z' }],
+        analyses: [{ id: 's1', consultation_id: 'c1', file_id: 'f1', status: 'complete', created_at: '2026-11-12T00:00:00Z',
+          colour_type: { key: 'deep_autumn', title: 'Deep Autumn' }, custom_palette: ['#985248'], notes: 'Rust suits her.' }],
+      }],
+      'GET /consultations/c1/files/f1': () => [200, new Uint8Array([0xff, 0xd8])],
+    };
+    await render(<App api={api} />);
+    await user.type(await screen.findByTestId('email'), 'layla@example.com');
+    await user.type(screen.getByTestId('password'), 'correct-horse-battery');
+    await user.press(screen.getByTestId('submit'));
+    await user.press(await screen.findByTestId('stylist-clients'));
+    expect(await screen.findByText('2 sessions · 1 photos')).toBeOnTheScreen();
+    await user.press(screen.getByTestId('client-u9'));
+    expect(await screen.findByTestId('client-photo-f1')).toBeOnTheScreen();
+    expect(screen.getByText('Rust suits her.')).toBeOnTheScreen();
+    expect(screen.getByText('2026-11-12 · Report draft')).toBeOnTheScreen();
+  });
+
   test('customers keep their services and never see staff or stylist tools', async () => {
     const { api, user } = start([...PHASE1, ...PHASE2, 'phase2.stylist_onboarding']);
     await render(<App api={api} />);

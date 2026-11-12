@@ -27,6 +27,7 @@ export function audienceOf(user: User | null): Audience {
 /** A stylist's tools, each shown when its feature is in the active release. */
 export const STYLIST_LINKS: { key: string; icon: IconName; feature: string; screen: string; params?: object }[] = [
   { key: 'bookings', icon: 'calendar', feature: 'phase2.stylist_discovery', screen: 'Practice' },
+  { key: 'clients', icon: 'user', feature: 'phase2.consultations', screen: 'Clients' },
   { key: 'services', icon: 'scissors', feature: 'phase2.stylist_discovery', screen: 'StylistServices' },
   { key: 'messages', icon: 'mail', feature: 'phase2.messaging', screen: 'Messages' },
   { key: 'featured', icon: 'megaphone', feature: 'phase2.paid_promotion', screen: 'Featured' },

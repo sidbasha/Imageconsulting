@@ -819,7 +819,8 @@
       "messages": "Messages",
       "featured": "Be featured",
       "membership": "Membership",
-      "profile": "My stylist profile"
+      "profile": "My stylist profile",
+      "clients": "Clients"
     }
   },
   "roles": {
@@ -884,5 +885,22 @@
       "autumn": "Autumn",
       "winter": "Winter"
     }
+  },
+  "clients": {
+    "title": "Clients",
+    "intro": "Everyone you have worked with: their photos, colour analyses and reports.",
+    "none": "No clients yet. They appear here after their first booking.",
+    "summary": "{{consultations}} sessions · {{photos}} photos",
+    "noType": "No colour analysis yet",
+    "photos": "Shared photos",
+    "analyses": "Colour analyses",
+    "consultations": "Sessions",
+    "report": {
+      "draft": "Report draft",
+      "delivered": "Report delivered",
+      "none": "No report yet"
+    },
+    "open": "Open workspace",
+    "inProgress": "In progress"
   }
 }
