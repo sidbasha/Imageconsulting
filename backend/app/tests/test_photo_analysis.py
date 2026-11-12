@@ -260,3 +260,94 @@ def test_analysis_follows_its_switch_and_keeps_data(client, release, db, uploads
     assert client.post(f"{API}/analysis/face_shape", json={"image_id": face}, headers=headers).status_code == 404
     assert client.get(f"{API}/analysis/face_shape", headers=headers).status_code == 404
     assert db.scalar(select(func.count()).select_from(PhotoAnalysis)) == 1
+
+
+# ---------- garment and hairstyle try-on (rows 11, 12) ----------
+
+GARMENT_JPEG = (FIXTURES / "garment_reference.jpg").read_bytes()
+
+
+def test_hairstyle_transfer_puts_the_new_hair_on_the_head():
+    from app.modules.ai_analysis import tryon
+
+    template = tryon.extract_hairstyle(rgb(FACE_JPEG))
+    assert set(template.anchors) == {"left_eye", "right_eye", "forehead", "chin"}
+    assert template.rgba.shape[2] == 4 and (template.rgba[..., 3] > 200).sum() > 2000
+    template = tryon.decode(tryon.encode(template), template.anchors)  # survives storage
+    user = sample_portrait()
+    out = tryon.apply_hairstyle(user, template)
+    face = engine.models.faces(user)[0].points[:, :2]
+    # Above the forehead the picture changed (new hair), the mouth area did not.
+    top = int(face[10, 1]) - 10
+    x0, x1 = int(face[234, 0]), int(face[454, 0])
+    assert np.abs(out[max(0, top - 40):top, x0:x1].astype(int) - user[max(0, top - 40):top, x0:x1].astype(int)).mean() > 10
+    mouth = (slice(int(face[13, 1]) - 5, int(face[14, 1]) + 5), slice(int(face[61, 0]), int(face[291, 0])))
+    assert np.abs(out[mouth].astype(int) - user[mouth].astype(int)).mean() < 4
+    recoloured = tryon.apply_hairstyle(user, template, colour="#b03020")
+    assert np.abs(recoloured.astype(int) - out.astype(int)).mean() > 0.5
+
+
+def test_garment_transfer_fits_the_reference_garment_to_the_body():
+    from app.modules.ai_analysis import tryon
+
+    template = tryon.extract_garment(rgb(GARMENT_JPEG))
+    assert set(template.anchors) == {"shoulder_l", "shoulder_r", "hip_l", "hip_r"}
+    body = rgb(BODY_JPEG)
+    out = tryon.apply_garment(body, template)
+    pose = engine.models.poses(body)[0].points[:, :2]
+    torso_y = int((pose[11, 1] + pose[23, 1]) / 2)
+    cx = int((pose[11, 0] + pose[12, 0]) / 2)
+    torso = (slice(torso_y - 20, torso_y + 20), slice(cx - 15, cx + 15))
+    assert np.abs(out[torso].astype(int) - body[torso].astype(int)).mean() > 25  # the garment is there
+    head = (slice(0, int(pose[0, 1])), slice(None))
+    assert np.abs(out[head].astype(int) - body[head].astype(int)).mean() < 2  # the head is untouched
+
+
+def test_extraction_refuses_photos_without_the_thing_to_cut_out():
+    from app.modules.ai_analysis import tryon
+
+    with pytest.raises(Unusable):
+        tryon.extract_garment(rgb(FACE_JPEG))  # a head-and-shoulders photo has no hips
+    with pytest.raises(Unusable):
+        tryon.extract_hairstyle(np.full((600, 600, 3), 128, np.uint8))
+
+
+def sample_portrait():
+    from skimage import data as sample_images
+
+    return sample_images.astronaut()
+
+
+def test_tryon_library_flow_admin_creates_approves_customer_tries(client, owner, uploads, db):  # noqa: F811
+    headers = english(client)
+    created = client.post(f"{API}/admin/tryon-items", data={"kind": "hairstyle", "title_en": "Natural curls", "title_ar": "تجعيدات طبيعية",
+                          "licence": "Test fixture, CC BY 4.0"}, files={"file": ("ref.jpg", FACE_JPEG, "image/jpeg")}, headers=owner)
+    assert created.status_code == 201, created.text
+    item = created.json()
+    assert item["content_status"] == "draft"
+    cutout = client.get(f"{API}/admin/tryon-items/{item['id']}/image", headers=owner)
+    assert cutout.headers["content-type"] == "image/png" and cutout.content[:4] == b"\x89PNG"
+    # Drafts are invisible to customers.
+    assert client.get(f"{API}/tryon/items", params={"kind": "hairstyle"}, headers=headers).json() == []
+    approve = {"content_status": "approved", "tags": {"face_shape": ["oval", "round"]}}
+    assert client.patch(f"{API}/admin/tryon-items/{item['id']}", json=approve, headers=owner).status_code == 200
+    listed = client.get(f"{API}/tryon/items", params={"kind": "hairstyle"}, headers=headers).json()
+    assert [i["title"] for i in listed] == ["Natural curls"]
+
+    face = photo_id(client, headers, FACE_JPEG, "face")
+    preview = client.post(f"{API}/previews/hairstyle", json={"image_id": face, "item_id": item["id"], "colour": "#5a3825"}, headers=headers)
+    assert preview.status_code == 200 and preview.content[:2] == b"\xff\xd8"
+    # A hairstyle cannot be used as a garment.
+    body = photo_id(client, headers, BODY_JPEG, "full_body")
+    assert client.post(f"{API}/previews/garment", json={"image_id": body, "item_id": item["id"]}, headers=headers).status_code == 404
+
+    garment = client.post(f"{API}/admin/tryon-items", data={"kind": "garment", "title_en": "Denim swimsuit", "title_ar": "ثوب سباحة",
+                          "licence": "Test fixture", "category": "swimwear"}, files={"file": ("g.jpg", GARMENT_JPEG, "image/jpeg")}, headers=owner).json()
+    client.patch(f"{API}/admin/tryon-items/{garment['id']}", json={"content_status": "approved"}, headers=owner)
+    fitted = client.post(f"{API}/previews/garment", json={"image_id": body, "item_id": garment["id"]}, headers=headers)
+    assert fitted.status_code == 200 and fitted.headers["cache-control"] == "no-store"
+    # Customers cannot manage the library.
+    assert client.get(f"{API}/admin/tryon-items", headers=headers).status_code == 403
+    bad = client.post(f"{API}/admin/tryon-items", data={"kind": "garment", "title_en": "x", "title_ar": "x", "licence": "xxx"},
+                      files={"file": ("f.jpg", FACE_JPEG, "image/jpeg")}, headers=owner)
+    assert bad.status_code == 422 and bad.json()["error"]["code"] == "photo_not_analysable"

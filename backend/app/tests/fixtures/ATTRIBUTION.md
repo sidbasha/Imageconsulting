@@ -9,3 +9,6 @@ Used only by the automated tests. Resized and re-encoded; otherwise unmodified.
   https://commons.wikimedia.org/wiki/File:Headshot_of_Andrea_Abrams.jpg
 
 The astronaut portrait used elsewhere comes from scikit-image (`skimage.data.astronaut`, public domain, NASA).
+- `garment_reference.jpg`: "Hunter McGrady modeling Chromat Spring-Summer 2018, full length",
+  Wikimedia Commons, licence CC BY-SA 3.0. Used as a try-on reference in tests.
+  https://commons.wikimedia.org/wiki/File:Hunter_McGrady_modeling_Chromat_Spring-Summer_2018,_full_length.jpg
