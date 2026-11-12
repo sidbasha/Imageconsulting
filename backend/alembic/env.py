@@ -6,7 +6,8 @@ from app.database import models  # noqa: F401  (registers every table)
 from app.database.base import Base
 
 target_metadata = Base.metadata
-url = get_settings().database_url
+settings = get_settings()
+url = settings.migration_database_url or settings.database_url
 
 if context.is_offline_mode():
     context.configure(url=url, target_metadata=target_metadata, literal_binds=True, compare_type=True)

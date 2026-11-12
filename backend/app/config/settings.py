@@ -8,6 +8,9 @@ class Settings(BaseSettings):
 
     env: str = "development"  # development | testing | staging | production
     database_url: str = "postgresql+psycopg://ic:ic@localhost:5432/ic_dev"
+    # Optional direct (non-pooled) URL for Alembic. Hosted Postgres behind a pooler (e.g. Neon's
+    # -pooler host) needs migrations on a direct connection. Empty: migrations use database_url.
+    migration_database_url: str = ""
     jwt_secret: str = "change-me-in-every-environment-0000000000"
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 15
