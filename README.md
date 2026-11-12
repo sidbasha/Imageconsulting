@@ -66,6 +66,21 @@ refused with the reason. Switching something off hides it; data is kept. Run
 `python -m app.cli apply-due` every minute (cron) so a scheduled release activates on time, and
 `python -m app.cli renew-subscriptions` daily.
 
+## Demo hosting that does not sleep
+
+Free hosts (e.g. Render's free web service) stop the API after ~15 minutes without traffic.
+Two pings keep a demo awake:
+
+1. **Self-ping:** set `IC_KEEP_ALIVE_URL=https://<api-host>/health` on the host. The API
+   requests its own public health check every `IC_KEEP_ALIVE_MINUTES` (default 10).
+2. **Backup cron:** `.github/workflows/keep-alive.yml` pings the same URL every 10 minutes
+   from GitHub Actions, which wakes the API if it ever did sleep. Set the repository
+   variable `KEEP_ALIVE_URL` (Settings → Secrets and variables → Actions → Variables).
+   Schedules run only from the default branch.
+
+`/health` does not query the database, so a serverless database (Neon) can still sleep
+between real requests and keep within its free compute hours. Leave both unset on paid hosting.
+
 ## Policy settings
 
 Values the client has not decided yet (minimum age, women-only, violation thresholds, ranking

@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,10 +18,20 @@ from app.modules.messaging import router as messaging
 from app.modules.promotions import router as promotions
 from app.modules.rewards import router as rewards
 from app.config.settings import get_settings
+from app.core import keep_alive
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    settings = get_settings()
+    stop = keep_alive.start(settings.keep_alive_url, settings.keep_alive_minutes) if settings.keep_alive_url else None
+    yield
+    if stop:
+        stop.set()
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Image Consulting API", version="0.1.0")
+    app = FastAPI(title="Image Consulting API", version="0.1.0", lifespan=lifespan)
     app.add_exception_handler(AppError, app_error_handler)
     origins = [o.strip() for o in get_settings().cors_origins.split(",") if o.strip()]
     if origins:

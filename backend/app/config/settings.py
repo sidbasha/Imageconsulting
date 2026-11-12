@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     model_dir: str = "./var/models"  # on-device vision models, see ai_analysis/engine.py
     # Browser origins allowed to call the API, comma-separated. Empty: the apps are native, no browser client.
     cors_origins: str = ""
+    # Demo hosting only: the app's own public health URL, e.g. https://ic-api.onrender.com/health.
+    # When set, the app pings it every keep_alive_minutes so a free host does not put it to sleep.
+    keep_alive_url: str = ""
+    keep_alive_minutes: float = 10
     default_language: str = "en"
     supported_languages: tuple[str, ...] = ("en", "ar")
 
