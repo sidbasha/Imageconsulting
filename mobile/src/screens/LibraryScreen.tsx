@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
 import type { Checkout, Product } from '../api/client';
-import { AppText, Button, Card, ErrorBanner, Row, Screen, ScreenHeader, money } from '../components/ui';
+import { AppText, Button, Card, ErrorBanner, Row, Screen, ScreenHeader, Tag, money } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
 import { colors, spacing } from '../theme';
@@ -52,16 +52,25 @@ export function LibraryScreen({ route, navigation }: Props) {
         <ErrorBanner message={error ? errorMessage(error, t) : failure ? errorMessage(failure, t) : null} />
         {data?.map(p => (
           <Card key={p.key}>
-            <AppText variant="heading">{p.title}</AppText>
-            <AppText muted>{p.description}</AppText>
             <Row style={styles.row}>
-              <AppText style={styles.flex}>{p.is_free ? t('library.free') : money(p.price_minor, p.currency)}</AppText>
+              <View style={[styles.bubble, { backgroundColor: p.kind === 'report' ? colors.lilac : p.is_free ? colors.goldSoft : colors.primarySoft }]}>
+                <Text style={styles.icon}>{p.kind === 'report' ? '📜' : p.key.includes('palette') || p.key.includes('lip') ? '🎨' : '📖'}</Text>
+              </View>
+              <View style={styles.flex}>
+                <AppText variant="heading">{p.title}</AppText>
+                <AppText muted variant="small">{p.description}</AppText>
+              </View>
+            </Row>
+            <Row style={styles.row}>
+              <View style={styles.flex}>
+                {p.owned ? <Tag label={t('library.owned')} tone="sage" /> : <Tag label={p.is_free ? t('library.free') : money(p.price_minor, p.currency)} tone={p.is_free ? 'gold' : 'rose'} />}
+              </View>
               {p.owned ? (
-                <Button kind="link" label={t('library.open')} onPress={() => open(p)} loading={busy === p.key} testID={`open-${p.key}`} />
+                <Button kind="soft" label={t('library.open')} onPress={() => open(p)} loading={busy === p.key} testID={`open-${p.key}`} />
               ) : p.is_free ? (
-                <Button kind="link" label={t('library.add')} onPress={() => claim(p)} loading={busy === p.key} testID={`claim-${p.key}`} />
+                <Button kind="soft" label={t('library.add')} onPress={() => claim(p)} loading={busy === p.key} testID={`claim-${p.key}`} />
               ) : (
-                <Button kind="link" label={t('library.buy')} onPress={() => buy(p)} loading={busy === p.key} testID={`buy-${p.key}`} />
+                <Button kind="soft" label={t('library.buy')} onPress={() => buy(p)} loading={busy === p.key} testID={`buy-${p.key}`} />
               )}
             </Row>
             {checkout?.key === p.key ? (
@@ -82,5 +91,7 @@ export function LibraryScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: spacing.lg, gap: spacing.md },
-  row: { gap: spacing.sm, alignItems: 'center' },
+  row: { gap: spacing.md, alignItems: 'center' },
+  bubble: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  icon: { fontSize: 22 },
 });

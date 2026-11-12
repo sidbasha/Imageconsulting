@@ -7,6 +7,7 @@ import React from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -140,6 +141,7 @@ export function ScreenHeader({ title, onBack }: { title: string; onBack: () => v
       <AppText variant="title" accessibilityRole="header">
         {title}
       </AppText>
+      <View style={[styles.accent, { backgroundImage: gradients.gold }]} />
     </View>
   );
 }
@@ -186,13 +188,16 @@ export function ErrorBanner({ message }: { message: string | null }) {
 }
 
 /** A single-choice row of pill buttons. */
-export function Chips<T extends string>({ options, value, onChange, label, testID }: {
+export function Chips<T extends string>({ options, value, onChange, label, testID, scroll }: {
   options: { value: T; label: string }[];
   value: T | null;
   onChange: (value: T) => void;
   label?: string;
   testID?: string;
+  /** One horizontally scrolling line instead of wrapping rows. */
+  scroll?: boolean;
 }) {
+  const { rtl } = useDirection();
   return (
     <View style={styles.field}>
       {label ? (
@@ -200,7 +205,7 @@ export function Chips<T extends string>({ options, value, onChange, label, testI
           {label}
         </AppText>
       ) : null}
-      <Row style={styles.chips}>
+      <ChipLine scroll={scroll} rtl={rtl}>
         {options.map(option => {
           const selected = option.value === value;
           return (
@@ -216,8 +221,64 @@ export function Chips<T extends string>({ options, value, onChange, label, testI
             </Pressable>
           );
         })}
-      </Row>
+      </ChipLine>
     </View>
+  );
+}
+
+function ChipLine({ scroll, rtl, children }: { scroll?: boolean; rtl: boolean; children: React.ReactNode }) {
+  if (!scroll) {
+    return <Row style={styles.chips}>{children}</Row>;
+  }
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.chipScroll, rtl ? styles.reverse : styles.forward]}>
+      {children}
+    </ScrollView>
+  );
+}
+
+/** Initials on a gradient disc with a white ring, for people without a photo. */
+export function Avatar({ name, size = 56 }: { name: string; size?: number }) {
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  return (
+    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundImage: gradients.hero, boxShadow: shadows.soft }]}>
+      <Text style={[styles.avatarText, { fontSize: size * 0.36, fontFamily: fonts.display }]}>{initials}</Text>
+    </View>
+  );
+}
+
+/** Gold stars and the score, e.g. ★ 4.9 (38). */
+export function Rating({ value, count }: { value: number; count: number }) {
+  if (!count) {
+    return null;
+  }
+  return (
+    <Row style={styles.rating}>
+      <Text style={styles.star}>★</Text>
+      <AppText variant="small" style={styles.ratingValue}>{value.toFixed(1)}</AppText>
+      <AppText variant="small" muted>{`(${count})`}</AppText>
+    </Row>
+  );
+}
+
+/** A small tinted label. */
+export function Tag({ label, tone = 'rose' }: { label: string; tone?: 'rose' | 'gold' | 'lilac' | 'sage' }) {
+  const background = { rose: colors.primarySoft, gold: colors.goldSoft, lilac: colors.lilac, sage: colors.sage }[tone];
+  const color = { rose: colors.primaryDeep, gold: '#8A6638', lilac: '#5B3E78', sage: '#2F5E47' }[tone];
+  return (
+    <View style={[styles.tag, { backgroundColor: background }]}>
+      <Text style={[styles.tagText, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
+/** A section heading with a small gold mark. */
+export function SectionTitle({ children }: { children: string }) {
+  return (
+    <Row style={styles.sectionTitle}>
+      <View style={[styles.sectionMark, { backgroundImage: gradients.gold }]} />
+      <AppText variant="heading">{children}</AppText>
+    </Row>
   );
 }
 
@@ -253,6 +314,19 @@ export function LanguageSwitch() {
 
 const styles = StyleSheet.create({
   chips: { gap: spacing.sm, flexWrap: 'wrap' },
+  chipScroll: { gap: spacing.sm, paddingVertical: 4, paddingHorizontal: 2 },
+  forward: { flexDirection: 'row' },
+  reverse: { flexDirection: 'row-reverse' },
+  accent: { width: 36, height: 3, borderRadius: 2, marginTop: -4 },
+  avatar: { alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, borderColor: colors.surface },
+  avatarText: { color: colors.onPrimary, letterSpacing: 1 },
+  rating: { gap: 4, alignItems: 'center' },
+  star: { color: colors.gold, fontSize: 14 },
+  ratingValue: { fontWeight: '700', color: colors.text },
+  tag: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3, alignSelf: 'flex-start' },
+  tagText: { fontSize: 12, fontWeight: '600', letterSpacing: 0.3 },
+  sectionTitle: { gap: spacing.sm, alignItems: 'center', marginTop: spacing.xs },
+  sectionMark: { width: 5, height: 20, borderRadius: 3 },
   screen: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   header: { gap: spacing.md, marginBottom: spacing.xs },

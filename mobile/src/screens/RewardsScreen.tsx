@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
-import { AppText, Button, Card, ErrorBanner, Row, Screen, ScreenHeader } from '../components/ui';
+import { AppText, Button, Card, ErrorBanner, Row, Screen, ScreenHeader, SectionTitle, Tag } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
-import { colors, spacing } from '../theme';
+import { colors, fonts, gradients, radius, shadows, spacing } from '../theme';
 import { errorMessage } from './errorMessage';
 import { useLoad } from './useLoad';
 
@@ -40,11 +40,13 @@ export function RewardsScreen({ navigation }: Props) {
         {points.loading && !points.data ? <ActivityIndicator color={colors.primary} /> : null}
         <ErrorBanner message={points.error ? errorMessage(points.error, t) : failure ? errorMessage(failure, t) : null} />
         {points.data ? (
-          <Card>
-            <AppText variant="title" testID="points-balance">
-              {t('rewards.balance', { count: points.data.balance })}
-            </AppText>
-          </Card>
+          <View style={[styles.member, { backgroundImage: gradients.hero, boxShadow: shadows.lifted }]}>
+            <View style={styles.orb} />
+            <Text style={styles.memberKicker}>{t('rewards.cardTitle')}</Text>
+            <Text style={styles.memberPoints} testID="points-balance">{t('rewards.balance', { count: points.data.balance })}</Text>
+            <View style={[styles.memberLine, { backgroundImage: gradients.gold }]} />
+            <Text style={styles.memberNote}>{t('rewards.cardNote')}</Text>
+          </View>
         ) : null}
         {done ? <AppText testID="redeemed">{t('rewards.redeemed')}</AppText> : null}
         {(options.data ?? []).map(o => (
@@ -54,19 +56,31 @@ export function RewardsScreen({ navigation }: Props) {
             <Button label={t('rewards.redeem')} onPress={() => redeem(o.key)} testID={`redeem-${o.key}`} />
           </Card>
         ))}
-        <AppText variant="heading">{t('rewards.howToEarn')}</AppText>
-        {points.data?.how_to_earn.map(rule => (
-          <Row key={rule.event} style={styles.row}>
-            <AppText style={styles.flex}>{rule.description}</AppText>
-            {rule.points ? <AppText>{`+${rule.points}`}</AppText> : null}
-          </Row>
-        ))}
+        <SectionTitle>{t('rewards.howToEarn')}</SectionTitle>
+        <Card>
+          {points.data?.how_to_earn.map((rule, i) => (
+            <View key={rule.event}>
+              {i ? <View style={styles.divider} /> : null}
+              <Row style={styles.row}>
+                <AppText style={styles.flex}>{rule.description}</AppText>
+                {rule.points ? <Tag label={`+${rule.points}`} tone="gold" /> : null}
+              </Row>
+            </View>
+          ))}
+        </Card>
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  member: { borderRadius: radius.xl, padding: spacing.lg, gap: spacing.xs, overflow: 'hidden', minHeight: 180, justifyContent: 'flex-end' },
+  orb: { position: 'absolute', width: 240, height: 240, borderRadius: 120, backgroundColor: 'rgba(255,255,255,0.12)', top: -110, right: -70 },
+  memberKicker: { color: 'rgba(255,255,255,0.85)', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '600' },
+  memberPoints: { color: colors.onPrimary, fontSize: 40, fontFamily: fonts.display, fontWeight: '700' },
+  memberLine: { width: 44, height: 3, borderRadius: 2 },
+  memberNote: { color: 'rgba(255,255,255,0.9)', fontSize: 14 },
+  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.sm },
   flex: { flex: 1 },
   content: { padding: spacing.lg, gap: spacing.md },
   row: { gap: spacing.sm },

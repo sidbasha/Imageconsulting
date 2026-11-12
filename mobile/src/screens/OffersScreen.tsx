@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Linking, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
-import { AppText, Button, Card, ErrorBanner, Screen, ScreenHeader } from '../components/ui';
+import { AppText, Button, Card, ErrorBanner, Screen, ScreenHeader, Tag } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
-import { colors, spacing } from '../theme';
+import { colors, fonts, gradients, spacing } from '../theme';
 import { approximatePosition, type Position } from '../location';
 import { errorMessage } from './errorMessage';
 import { useLoad } from './useLoad';
@@ -56,20 +56,21 @@ export function OffersScreen({ route, navigation }: Props) {
         <ErrorBanner message={error ? errorMessage(error, t) : null} />
         {!loading && (offers.data ?? []).length + (vouchers.data ?? []).length === 0 ? <AppText muted>{t('offers.none')}</AppText> : null}
         {(offers.data ?? []).map(o => (
-          <Card key={o.id}>
-            <AppText variant="small" muted>
-              {t('offers.sponsored', { name: o.advertiser })}
-            </AppText>
-            <AppText variant="heading">{o.title}</AppText>
-            {o.body ? <AppText>{o.body}</AppText> : null}
-            {o.has_link ? <Button kind="link" label={t('offers.visit')} onPress={() => open(o.id)} testID={`visit-${o.id}`} /> : null}
+          <Card key={o.id} style={styles.offer}>
+            <View style={[styles.banner, { backgroundImage: gradients.hero }]}>
+              <Text style={styles.bannerText}>{o.advertiser}</Text>
+            </View>
+            <View style={styles.offerBody}>
+              <Tag label={t('offers.sponsored', { name: o.advertiser })} tone="gold" />
+              <AppText variant="heading">{o.title}</AppText>
+              {o.body ? <AppText muted>{o.body}</AppText> : null}
+              {o.has_link ? <Button kind="soft" label={t('offers.visit')} onPress={() => open(o.id)} testID={`visit-${o.id}`} /> : null}
+            </View>
           </Card>
         ))}
         {(vouchers.data ?? []).map(v => (
-          <Card key={v.id}>
-            <AppText variant="small" muted>
-              {v.partner}
-            </AppText>
+          <Card key={v.id} style={styles.voucher}>
+            <Tag label={v.partner} tone="lilac" />
             <AppText variant="heading">{v.title}</AppText>
             {v.terms ? <AppText muted>{v.terms}</AppText> : null}
             {codes[v.id] ? (
@@ -86,4 +87,11 @@ export function OffersScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({ content: { padding: spacing.lg, gap: spacing.md } });
+const styles = StyleSheet.create({
+  content: { padding: spacing.lg, gap: spacing.md },
+  offer: { padding: 0, overflow: 'hidden' },
+  banner: { height: 96, alignItems: 'center', justifyContent: 'center' },
+  bannerText: { color: colors.onPrimary, fontFamily: fonts.display, fontSize: 24, letterSpacing: 1 },
+  offerBody: { padding: spacing.md + 2, gap: spacing.sm },
+  voucher: { borderStyle: 'dashed', borderWidth: 1.5, borderColor: colors.gold },
+});

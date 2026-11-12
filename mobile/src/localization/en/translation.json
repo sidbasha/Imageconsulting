@@ -282,7 +282,8 @@
     "open": "Open",
     "add": "Add to my library",
     "buy": "Buy",
-    "reports": "Detailed reports"
+    "reports": "Detailed reports",
+    "owned": "In your library"
   },
   "plans": {
     "title": {
@@ -311,7 +312,9 @@
     "cost": "{{count}} points",
     "redeem": "Redeem",
     "redeemed": "Done. You can use it when booking.",
-    "howToEarn": "How to earn points"
+    "howToEarn": "How to earn points",
+    "cardTitle": "Your rewards",
+    "cardNote": "Earn points as you discover your style."
   },
   "shop": {
     "title": "Shop",
@@ -355,7 +358,15 @@
     "testimonials": "What clients say",
     "nearMe": "Near me",
     "anywhere": "Search by city instead",
-    "noLocation": "Your location is not available. Search by city instead."
+    "noLocation": "Your location is not available. Search by city instead.",
+    "intro": "Certified consultants, reviewed and verified.",
+    "cityHint": "Dubai, Abu Dhabi…",
+    "showingNear": "Showing stylists near you",
+    "from": "From {{price}}",
+    "view": "View profile",
+    "reviews": "{{count}} reviews",
+    "years": "Years",
+    "languages": "Languages"
   },
   "booking": {
     "title": "Book",
@@ -382,6 +393,14 @@
       "completed": "Completed",
       "cancelled": "Cancelled",
       "expired": "Expired"
+    },
+    "chooseService": "Choose a service",
+    "chooseTime": "Choose a time",
+    "hours": "{{count}} hours",
+    "minutes": "{{count}} min",
+    "mode": {
+      "online": "Online",
+      "in_person": "In person"
     }
   },
   "consultation": {
