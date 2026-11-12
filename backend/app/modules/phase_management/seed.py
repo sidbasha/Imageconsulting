@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.modules.assessments.service import seed_content
 from app.modules.commerce.service import seed as commerce_seed
+from app.modules.consultations.service import seed as templates_seed
+from app.modules.rewards.service import seed as rewards_seed
 from app.modules.platform.service import seed as platform_seed
 from app.modules.auth.models import Permission, Role
 from app.modules.phase_management import catalog, service
@@ -90,3 +92,5 @@ def seed(db: Session) -> None:
     seed_content(db)
     platform_seed(db)
     commerce_seed(db)
+    rewards_seed(db)
+    templates_seed(db)

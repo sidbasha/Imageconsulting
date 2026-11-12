@@ -69,6 +69,9 @@ def run(db: Session, storage: Storage, user: User, kind: str, image_id: uuid.UUI
     db.add(analysis)
     db.flush()
     db.refresh(analysis)
+    from app.modules.rewards.service import award
+
+    award(db, user.id, "photo_analysis", ref=kind)
     return analysis
 
 

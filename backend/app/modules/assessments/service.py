@@ -103,6 +103,9 @@ def submit(db: Session, user: User, questionnaire: Questionnaire, answers: dict[
     db.add(assessment)
     db.flush()
     db.refresh(assessment)
+    from app.modules.rewards.service import award  # late import: rewards depends on commerce
+
+    award(db, user.id, "assessment_completed", ref=questionnaire.key)
     return assessment
 
 

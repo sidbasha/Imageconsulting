@@ -68,7 +68,7 @@ def make_eligible(db, user):
     from app.modules.users.models import CustomerProfile
 
     db.add(CustomerProfile(user_id=user.id, date_of_birth=date(1990, 5, 1), gender="female", country_code="AE",
-                           eligibility_status="eligible", eligibility_reasons=[]))
+                           eligibility_status="eligible", eligibility_reasons=[], identity_status="verified"))
     db.flush()
 
 

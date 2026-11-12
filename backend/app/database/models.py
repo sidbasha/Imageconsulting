@@ -5,6 +5,11 @@ from app.modules.ai_analysis import models as _ai_analysis  # noqa: F401
 from app.modules.assessments import models as _assessments  # noqa: F401
 from app.modules.auth import models as _auth  # noqa: F401
 from app.modules.commerce import models as _commerce  # noqa: F401
+from app.modules.consultations import models as _consultations  # noqa: F401
+from app.modules.marketplace import models as _marketplace  # noqa: F401
+from app.modules.messaging import models as _messaging  # noqa: F401
+from app.modules.promotions import models as _promotions  # noqa: F401
+from app.modules.rewards import models as _rewards  # noqa: F401
 from app.modules.phase_management import models as _phase  # noqa: F401
 from app.modules.platform import models as _platform  # noqa: F401
 from app.modules.users import models as _users  # noqa: F401

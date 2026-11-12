@@ -80,3 +80,19 @@ def test_every_message_exists_in_both_languages():
     arabic = json.loads((folder / "ar.json").read_text(encoding="utf-8"))
     assert english.keys() == arabic.keys()
     assert all(arabic.values()) and all(english.values())
+
+
+def test_every_error_code_has_an_english_and_arabic_message():
+    """Any AppError code raised in the code base must be translated in both languages."""
+    import json
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    codes = set()
+    for path in root.rglob("*.py"):
+        if "tests" not in path.parts:
+            codes |= set(re.findall(r'AppError\(\s*\d+,\s*"([a-z_]+)"', path.read_text(encoding="utf-8")))
+    for language in ("en", "ar"):
+        messages = json.loads((root / "localization" / f"{language}.json").read_text(encoding="utf-8"))
+        assert not sorted(codes - messages.keys()), language

@@ -30,6 +30,8 @@ DEFAULTS: dict[str, tuple[object, str]] = {
     ),
     # Row 29, metering
     "workspace.credits_per_client": (1, "Workspace credits used when a consultant opens a new client."),
+    # Row 42, paid promotion
+    "promotion.featured_price_per_day_minor": (5000, "Price of one day of featured placement for a stylist, in fils. Placeholder."),
     # Rows 43-44, rewards
     "rewards.points_per_aed": (1, "Points earned per AED spent."),
     # Row 19, booking

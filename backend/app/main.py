@@ -10,6 +10,11 @@ from app.modules.feature_flags.router import router as config_router
 from app.modules.phase_management.router import router as phase_router
 from app.modules.users import router as users
 from app.modules.commerce import router as commerce
+from app.modules.consultations import router as consultations
+from app.modules.marketplace import router as marketplace
+from app.modules.messaging import router as messaging
+from app.modules.promotions import router as promotions
+from app.modules.rewards import router as rewards
 from app.config.settings import get_settings
 
 
@@ -25,7 +30,15 @@ def create_app() -> FastAPI:
     v1.include_router(images_router)
     v1.include_router(analysis_router)
     v1.include_router(previews_router)
-    for r in (users.router, users.identity, users.admin, commerce.router, commerce.library, commerce.retail, commerce.admin):
+    for r in (
+        users.router, users.identity, users.admin,
+        commerce.router, commerce.library, commerce.retail, commerce.admin,
+        rewards.router, rewards.redeem, rewards.admin,
+        marketplace.application, marketplace.practice, marketplace.discovery, marketplace.bookings, marketplace.admin,
+        consultations.router, consultations.workspace, consultations.admin,
+        messaging.router, messaging.admin,
+        promotions.featured, promotions.ads, promotions.vouchers, promotions.admin,
+    ):
         v1.include_router(r)
     if get_settings().env != "production":
         v1.include_router(commerce.sandbox)

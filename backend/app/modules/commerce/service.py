@@ -182,8 +182,9 @@ def mark_paid(db: Session, order: Order) -> None:
     db.flush()
     if order.kind in ON_PAID:
         ON_PAID[order.kind](db, order)
-    for hook in AFTER_PAID:
-        hook(db, order)
+    if order.status == "paid":  # a fulfilment hook may have marked it refund_due
+        for hook in AFTER_PAID:
+            hook(db, order)
     db.flush()
 
 
@@ -208,7 +209,7 @@ def handle_webhook(db: Session, payments: PaymentProvider, body: bytes, headers:
 
 
 def refund(db: Session, payments: PaymentProvider, order: Order) -> Order:
-    if order.status != "paid":
+    if order.status not in ("paid", "refund_due"):
         raise AppError(409, "order_not_refundable")
     if order.amount_minor > 0 and order.provider_ref:
         order.refund_ref = payments.refund(reference=order.provider_ref, amount_minor=order.amount_minor)
