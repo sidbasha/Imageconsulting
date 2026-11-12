@@ -1,6 +1,6 @@
 # Development status
 
-Last updated: 12 Nov 2026, after the Phase 1 self-assessment slice.
+Last updated: 12 Nov 2026, after the photo analysis and all-phases build.
 
 The product described in the master prompt is a multi-month build for a team. This file is
 the honest ledger: nothing is listed as complete unless it exists and its tests pass.
@@ -9,18 +9,110 @@ the honest ledger: nothing is listed as complete unless it exists and its tests 
 
 | # | Milestone | Status |
 |---|---|---|
-| 0 | Source analysis, feature-to-phase map, RTM, architecture | Done |
-| 1 | Backend foundation: auth, roles, release control (phases, feature switches, scheduling, preview, rollback, history) | Done, 33 tests passing |
-| 2 | Identity and profile: email/mobile verification, password reset, rate limiting, consent, audit log, account deletion, UAE Pass adapter, eligibility, countries and languages, notifications | Not started |
-| 3 | Assessments: onboarding quiz, style assessment, image upload, private storage, quality gate | Done on backend and mobile with DRAFT content (see slice report). S3 storage backend not written |
-| 4 | AI analysis: face shape, body shape, colour; Celery workers; model registry; evaluation harness | Not started. Self-assessment questionnaires stand in for face shape, body shape and colour meanwhile |
-| 5 | Recommendations, reports with EN/AR PDF, digital guides, entitlements, subscriptions and payment adapter, retail links, loyalty points | Partly done: rule-based outfit, eyewear and hairstyle recommendations. The rest not started |
-| 6 | Mobile app for Phase 1 (EN/AR, RTL) and admin panel core with the Phase Management screen | Partly done: mobile foundation built (see below). Feature screens and the whole admin panel not started |
-| 7 | Phase 2 marketplace: stylist onboarding, credentials, verification, discovery, booking, service payments, consultations, audits, expert reports | Not started |
-| 8 | Phase 2 safeguards and tools: messaging, contact detection, blocking, violations, colour workspace, draping, metering, redemption, testimonials, paid promotion | Not started |
-| 9 | Mobile and admin screens for Phase 2 | Not started |
-| 10 | Phase 3: makeup preview, personal shopper, location discovery, physical products, brand advertising, geo promotions, vouchers, multi-country settings | Not started |
-| 11 | Hardening: security and performance testing, full bilingual QA on devices, deployment guide, client delivery documents | Not started |
+| 0 | Source analysis, feature-to-phase map, RTM, architecture | Done (RTM not regenerated for this build, see below) |
+| 1 | Backend foundation: auth, roles, release control | Done |
+| 2 | Identity and profile | Mostly done: eligibility, markets, ID upload and review, UAE Pass sandbox, settings. Not done: email/mobile verification, password reset, rate limiting, audit log, account deletion, notifications |
+| 3 | Assessments and photo upload | Done with DRAFT content |
+| 4 | AI analysis | Done as indicative photo analysis (face, body, colour) on on-device models. Accuracy unmeasured. Celery workers not wired |
+| 5 | Recommendations, reports, guides, entitlements, subscriptions, payments, retail links, loyalty | Done against a SANDBOX payment gateway. Real gateway not chosen |
+| 6 | Mobile app for Phase 1 and admin panel | Mobile done for customers. Admin panel (web) NOT started; every admin function exists as an API only |
+| 7 | Phase 2 marketplace | Done (backend and customer screens). Stylist screens partial |
+| 8 | Phase 2 safeguards and tools | Done. Product recognition and video calls have no provider |
+| 9 | Mobile and admin screens for Phase 2 | Customer screens done; stylist report editor, workspace and availability screens not built; admin not started |
+| 10 | Phase 3 | Done in backend; mobile done except location search (needs a geolocation library) |
+| 11 | Hardening | Not started |
+
+## Photo analysis and all-phases report (12 Nov 2026)
+
+**Tests**: backend 113 passed (PostgreSQL 16, real MediaPipe models); mobile 38 passed; end-to-end 16 passed against the live API, including real model inference and a sandbox purchase. Type-check and lint clean. Migrations 0003 and 0004 round-trip (upgrade, downgrade, upgrade, `alembic check`).
+
+### Photo analysis (rows 6-9, 11, 12, 14, 27, 28)
+
+- On-device Google MediaPipe models (face landmarks, pose with body mask, multiclass hair/skin/clothes segmentation). `python -m app.cli fetch-models` downloads them and checks SHA-256; the Dockerfile runs it. They are not in git.
+- **Face shape**: five measurements from 478 landmarks (length/cheekbone ratio, jaw ratio, forehead-to-jaw taper, jaw and chin angles), nearest-prototype classification with a confidence. Refuses turned heads, no face, several faces.
+- **Body shape**: shoulder, waist and hip widths from the body silhouette, measured only on rows where an arm does not touch the body. Refuses arms on hips, arms touching the body, side-on poses, partial bodies. On 8 public runway photos only 1 was accepted, because models walk with arms against the body: users must follow the photo tips (arms slightly away), which the app shows.
+- **Seasonal colour**: skin (cheeks and forehead), hair (optional, so a covered head works) and iris colour in CIELAB; warmth, depth and clarity scores mapped to the four seasons. Refuses black-and-white, sepia and badly exposed photos; flags tinted light from the colour of the eye whites. Correcting the colour from the eye whites was tried and made results worse, so it is not done.
+- Results are stored with model version, scores and measurements; labelled "indicative" everywhere; a newer photo result replaces an older questionnaire result in recommendations and vice versa.
+- **Previews**, returned as JPEG and never stored: hair colour, outfit colour, lip and brow tint, consultant drape and side-by-side drape comparison.
+
+**Important caveats**
+- The classification constants are DRAFTS calibrated by eye on about a dozen public photos. **Accuracy has not been measured.** That needs photos labelled by the client's consultants (row 64). All constants are in one table per analyser for recalibration.
+- "Virtual outfit try-on" (row 11) is built as a **colour** try-on on the user's own clothes. Putting a different garment on the photo needs a generative try-on model or vendor; not built. Same for a new haircut (row 12): colour only.
+- Analysis runs inside the request (about a second on CPU). Celery workers are still not wired.
+
+### Feature rows
+
+Status: Built = works end to end with tests; Partial = see note; API = backend only, no screen.
+
+| Row | Feature | Status | Note |
+|---|---|---|---|
+| 1 | Identity verification | Partial | ID upload and staff review built; documents deleted after review. UAE Pass is a sandbox: the real provider needs the client's UAE Pass onboarding |
+| 2 | Eligibility verification | Built | Age and women-only from declared or verified facts; thresholds are settings (row 63 open) |
+| 3 | UAE-only launch access | Built | Country rule; launch market cannot be disabled |
+| 4 | Visual onboarding quiz | Built | Draft content; image options await client images |
+| 5 | Personal style assessment | Built | Draft content |
+| 6 | Photo-based assessment | Built | |
+| 7 | Face-shape analysis | Built | Photo and questionnaire; indicative, accuracy unmeasured |
+| 8 | Body-shape analysis | Built | Photo and questionnaire; strict pose requirements |
+| 9 | Preliminary seasonal color | Built | Photo and questionnaire; indicative |
+| 10 | Outfit recommendations | Built | Rule-based, draft advice |
+| 11 | Virtual outfit try-on | Partial | Colour try-on only (see caveats) |
+| 12 | Hair makeover preview | Partial | Hair colour on photo plus hairstyle advice; no new cut |
+| 13 | Eyewear recommendations | Built | |
+| 14 | Permanent-makeup preview | Built | Lip and brow tint |
+| 15 | Stylist onboarding | Built | |
+| 16 | Credential submission | Built | Mobile takes photos of documents; PDF upload from the phone needs a document picker |
+| 17 | Stylist verification | Built | Approval needs at least one accepted credential |
+| 18 | Stylist profiles and discovery | Built | Ranking weights are a setting (row 66 open) |
+| 19 | Consultation booking | Built | Slot hold 15 min, cancellation window is a setting |
+| 20 | In-app consultations | Partial | Intake, photos, report, messaging. No video: provider not chosen |
+| 21 | Occasion-specific style audit | Built | |
+| 22 | Wardrobe audit | Built | |
+| 23 | Makeup audit | Built | Requires a seasonal colour result (Excel note) |
+| 24 | Expert color analysis | Built | Report template has temperature, contrast, palette, makeup, hair, clothing, metals |
+| 25 | Standardized expert reports | Partial | Templates, validation, PDF in EN/AR. Stylists write reports through the API: no mobile editor yet |
+| 26 | Product recognition from photos | Not built | Endpoint says "integration not configured": needs a recognition service and product database |
+| 27 | Consultant colour workspace | API | Backend built and tested; no stylist screen |
+| 28 | Digital color draping | API | As 27 |
+| 29 | Metered tool access | Built | Credits per client, bought as a product |
+| 30 | In-app messaging | Built | Only after a booking |
+| 31 | Contact-sharing detection | Built | Phones, emails, IBAN/cards, links, social handles, incl. Arabic digits and spelled-out numbers. Rule-based; will not catch everything |
+| 32 | Message blocking and warnings | Built | |
+| 33 | Violation tracking and suspension | Built | Thresholds are settings (row 33 open) |
+| 34 | Free and paid feature access | Built | Entitlements; what is free is a placeholder (row 62 open) |
+| 35 | Customer subscriptions | Partial | Plans, renewal job, cancellation. Automatic card charging needs a real gateway with saved cards |
+| 36 | Retail product recommendations | Built | No retailer items seeded: the client must supply them |
+| 37 | Paid report access | Built | Full assessment report PDF EN/AR |
+| 38 | Digital guide catalog | Built | Draft guides; lip/blush shades are drafts |
+| 39 | Complimentary digital resources | Built | |
+| 40 | Consultant subscriptions | Built | Annual membership required to offer services |
+| 41 | In-app service payments | Partial | Through the sandbox gateway only |
+| 42 | Paid consultant promotion | API | Purchase, admin approval and ranking boost built; no stylist screen to buy it |
+| 43 | Loyalty points | Built | Draft rules |
+| 44 | Reward redemption | Built | Free consultation credit |
+| 45 | Testimonials and recognition | Built | Moderation by admin |
+| 46 | In-person personal shopper | Built | |
+| 47 | Location-based discovery | Partial | Backend built; mobile searches by city because device location needs a geolocation library |
+| 48 | Physical product catalog | Built | Fulfilment status set by admin; no courier integration |
+| 49 | Brand advertising | Built | Campaigns entered by admin |
+| 50 | Location-targeted promotions | Partial | Backend built; the app does not send a location yet (as 47) |
+| 51 | Vouchers and offers | Built | |
+| 52 | International expansion | Partial | Markets switchable; no currency conversion, local payment or local content |
+| 53-60 | Supporting administration | API | Every function exists as an admin API with role permissions. **The admin web panel is not started.** |
+
+### Integrations that are sandboxes or missing (need client decisions or accounts)
+
+- Payments: sandbox only. Needs a chosen UAE gateway and merchant account.
+- UAE Pass: sandbox only. Needs UAE Pass onboarding (client id, secret, redirect URI).
+- Video consultations, product recognition, push notifications (Firebase and Apple keys), SMS/email, courier: not connected.
+- Both sandboxes refuse to start when `IC_ENV=production`, so they cannot be shipped by mistake.
+
+### Not verified
+
+- Native Android and iOS builds are still uncompiled on a device. No new native library was added in this build (PDFs open in the browser through signed links; previews use base64), so the native surface is unchanged.
+- Arabic text (app, API messages, PDFs) is still unreviewed by a native speaker. PDF Arabic shaping and right-to-left layout were checked by rendering.
+- The Docker image was changed (system libraries for OpenCV, model download) but not built here.
+- The RTM spreadsheet was not regenerated: `docs/build_rtm.py` needs the client's workbook, which is not on this machine. Its planned API column predates this build.
 
 ## Milestone 1 report
 

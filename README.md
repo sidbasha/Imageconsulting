@@ -10,7 +10,7 @@ backend/   FastAPI modular monolith (Python), PostgreSQL, Alembic
 docs/      Requirements Traceability Matrix and its generator
 mobile/    React Native app with android/ and ios/ (foundation; see mobile/README.md)
 scripts/   e2e.sh: API + mobile client end-to-end check
-admin/     React admin panel           (not started)
+admin/     React admin panel           (not started; every admin function exists as an API)
 ```
 
 ## Run locally
@@ -27,7 +27,8 @@ cd backend
 pip install -r requirements.txt
 cp .env.example .env
 alembic upgrade head
-python -m app.cli seed               # roles, 52 feature keys, release 1 = Phase 1 only
+python -m app.cli fetch-models       # photo-analysis models (MediaPipe), checksum-verified
+python -m app.cli seed               # roles, 52 feature keys, release 1 = Phase 1 only, draft catalogue
 python -m app.cli create-superadmin --email you@example.com --name "You"
 uvicorn app.main:app --reload
 ```
@@ -70,7 +71,23 @@ curl -H "Authorization: Bearer $TOKEN" -H "X-Release-Preview: <release id>" \
 
 Scheduled releases activate on the next API request after they fall due. Also run
 `python -m app.cli apply-due` every minute (cron now, Celery beat later) so a schedule holds
-with no traffic.
+with no traffic, and `python -m app.cli renew-subscriptions` daily.
+
+## Policy settings
+
+Values the client has not decided yet (minimum age, women-only, violation thresholds, ranking
+weights, cancellation window, prices of featured placement...) are settings, not code:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/v1/admin/settings
+curl -X PUT ... -d '{"value": 16}' http://localhost:8000/api/v1/admin/settings/eligibility.min_age
+```
+
+## Sandboxes
+
+Payments and UAE Pass run against sandbox providers outside production. In development the
+app shows a "complete test payment" button; the backend refuses to start them when
+`IC_ENV=production`.
 
 ## Adding a module behind a feature
 
