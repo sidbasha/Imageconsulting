@@ -372,6 +372,9 @@ export function createApiClient(options: Options) {
     updateMe: (changes: { full_name?: string; preferred_language?: Language }) =>
       request<User>('PATCH', '/users/me', { body: changes }),
 
+    /** Questionnaires in this release, with the user's latest result if any. */
+    assessments: () => request<{ key: string; title: string; completed_at: string | null; result: string | null }[]>('GET', '/assessments'),
+
     questionnaire: (key: string) => request<Questionnaire>('GET', `/assessments/${key}`),
 
     submitAnswers: (key: string, answers: Record<string, string>) =>

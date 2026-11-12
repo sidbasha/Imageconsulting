@@ -33,6 +33,9 @@ export const gradients = {
   hero: 'linear-gradient(150deg, #F3C9D5 0%, #D98BA8 38%, #A23E66 72%, #6B2346 100%)',
   screen: 'linear-gradient(180deg, #F9E9EA 0%, #FBF5F3 38%, #FBF5F3 100%)',
   gold: 'linear-gradient(135deg, #E9D3B4 0%, #C29A6B 100%)',
+  plum: 'linear-gradient(150deg, #B58BC9 0%, #7B4B94 55%, #45245C 100%)',
+  dusk: 'linear-gradient(150deg, #F2B8A0 0%, #D9727F 50%, #8C3A5E 100%)',
+  champagne: 'linear-gradient(150deg, #EBD3AE 0%, #C9A070 55%, #8C6A45 100%)',
   card: 'linear-gradient(160deg, #FFFFFF 0%, #FFF7F6 100%)',
 };
 

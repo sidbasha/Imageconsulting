@@ -32,7 +32,7 @@ import { StylistApplicationScreen } from '../screens/StylistApplicationScreen';
 import { PracticeScreen } from '../screens/PracticeScreen';
 import { RecommendationsScreen } from '../screens/RecommendationsScreen';
 import { LoginScreen, RegisterScreen } from '../screens/AuthScreens';
-import { HomeScreen } from '../screens/HomeScreen';
+import { MainTabs } from './MainTabs';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { colors, spacing } from '../theme';
 
@@ -101,7 +101,7 @@ export function RootNavigator() {
     <NavigationContainer>
       {status === 'signedIn' ? (
         <AppStack.Navigator screenOptions={{ ...screenOptions, animation }}>
-          <AppStack.Screen name="Home" component={HomeScreen} />
+          <AppStack.Screen name="Home" component={MainTabs} />
           <AppStack.Screen name="Settings" component={SettingsScreen} />
           <AppStack.Screen name="Assessment" component={AssessmentScreen} />
           <AppStack.Screen name="Recommendations" component={RecommendationsScreen} />

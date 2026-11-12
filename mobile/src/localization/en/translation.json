@@ -50,7 +50,46 @@
     "subtitle": "Your services",
     "empty": "No services are available yet.",
     "settings": "Settings",
-    "tagline": "Discover the colours, shapes and styles that are truly yours."
+    "tagline": "Discover the colours, shapes and styles that are truly yours.",
+    "kicker": "Your style, your way",
+    "search": "Search services",
+    "noResults": "Nothing matches.",
+    "profileTitle": "Your style profile",
+    "profileProgress": "{{done}} of {{total}} complete",
+    "profileNext": "Continue: {{title}}",
+    "topStylists": "Top stylists",
+    "seeAll": "See all",
+    "featured": {
+      "colours": {
+        "kicker": "Colour analysis",
+        "title": "Find the colours that love you back",
+        "cta": "Analyse my photo"
+      },
+      "tryOn": {
+        "kicker": "Virtual try-on",
+        "title": "See it on you before you buy",
+        "cta": "Try it on"
+      },
+      "stylist": {
+        "kicker": "Personal stylists",
+        "title": "Meet an expert who gets you",
+        "cta": "Browse experts"
+      },
+      "style": {
+        "kicker": "Style DNA",
+        "title": "Five questions to your signature look",
+        "cta": "Start now"
+      }
+    },
+    "quick": {
+      "photoAssessment": "Photos",
+      "hairStyles": "Hair",
+      "outfits": "Outfits",
+      "bookings": "Bookings",
+      "messages": "Chat",
+      "rewards": "Points",
+      "guides": "Guides"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -583,5 +622,22 @@
       "rejected": "Not approved",
       "cancelled": "Cancelled"
     }
+  },
+  "tabs": {
+    "Today": "Home",
+    "Style": "Style",
+    "Experts": "Experts",
+    "Shop": "Shop",
+    "Me": "Me",
+    "StyleTitle": "Your style studio",
+    "StyleIntro": "Assessments, previews and advice made for you.",
+    "ExpertsTitle": "Your experts",
+    "ExpertsIntro": "Book, consult and chat with verified stylists.",
+    "ShopTitle": "Library and shop",
+    "ShopIntro": "Guides, reports, products and offers."
+  },
+  "menu": {
+    "open": "Menu",
+    "close": "Close menu"
   }
 }
