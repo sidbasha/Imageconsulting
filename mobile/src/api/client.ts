@@ -187,6 +187,7 @@ export type ClientDetail = {
   analyses: { id: string; consultation_id: string; file_id: string | null; status: 'in_progress' | 'complete'; created_at: string;
     colour_type: { key: ColourTypeKey; title: string } | null; custom_palette: string[] | null; notes: string | null }[];
 };
+export type MyPalette = ColourTypeSummary & { basis: 'expert' | 'self_draping' | 'photo_analysis'; since: string; custom_palette: string[] | null };
 export type DrapingAnswer = { step: DrapingStep['step']; pair?: number; pick: string };
 export type FeaturedCampaign = { id: string; status: string; starts_at: string; ends_at: string; impressions: number };
 export type Near = { lat?: number; lng?: number };
@@ -563,6 +564,15 @@ export function createApiClient(options: Options) {
     setVerdict: (consultationId: string, fileId: string, verdict: string, note?: string) =>
       request<unknown>('PUT', `/consultations/${consultationId}/files/${fileId}/verdict`, { body: { verdict, note } }),
     consultationFile: (consultationId: string, fileId: string) => requestImage('GET', `/consultations/${consultationId}/files/${fileId}`, undefined),
+    myPalette: () => request<MyPalette | null>('GET', '/my-palette'),
+    startSelfDraping: (imageId: string) => request<DrapingSession>('POST', '/my-draping', { body: { image_id: imageId } }),
+    selfDraping: (sessionId: string) => request<DrapingSession>('GET', `/my-draping/${sessionId}`),
+    answerSelfDraping: (sessionId: string, answer: DrapingAnswer) =>
+      request<DrapingSession>('POST', `/my-draping/${sessionId}/answer`, { body: answer }),
+    undoSelfDraping: (sessionId: string) => request<DrapingSession>('POST', `/my-draping/${sessionId}/undo`),
+    selfDrapePair: (imageId: string, a: string, b: string) =>
+      requestImage('GET', `/my-draping/drape-pair?image_id=${imageId}&a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`, undefined),
+    selfCompare: (imageId: string, colours: string[]) => requestImage('POST', '/my-draping/compare', { image_id: imageId, colours }),
     clients: () => request<ClientSummary[]>('GET', '/stylist/clients'),
     clientDetail: (id: string) => request<ClientDetail>('GET', `/stylist/clients/${id}`),
     colourTypes: () => request<ColourTypeListItem[]>('GET', '/colour-types'),

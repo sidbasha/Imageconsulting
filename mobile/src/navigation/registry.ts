@@ -22,7 +22,7 @@ export type Target =
   | { screen: 'Offers'; params?: { show: 'offers' | 'vouchers' } }
   | { screen: 'Stylists'; params?: { kind: string } }
   | {
-      screen: 'Photos' | 'Retail' | 'Rewards' | 'Profile' | 'Shop' | 'Bookings' | 'Messages' | 'StylistApplication' | 'Practice';
+      screen: 'Photos' | 'Retail' | 'Rewards' | 'Profile' | 'Shop' | 'Bookings' | 'Messages' | 'StylistApplication' | 'Practice' | 'MyPalette' | 'SelfDraping';
       params?: undefined;
     };
 
@@ -37,6 +37,8 @@ export const ENTRIES: Entry[] = [
   { id: 'faceShape', feature: 'phase1.face_shape', group: 'assessment', target: { screen: 'Assessment', params: { key: 'face_shape' } } },
   { id: 'bodyShape', feature: 'phase1.body_shape', group: 'assessment', target: { screen: 'Assessment', params: { key: 'body_shape' } } },
   { id: 'seasonalColor', feature: 'phase1.seasonal_color', group: 'assessment', target: { screen: 'Assessment', params: { key: 'seasonal_color' } } },
+  { id: 'selfDraping', feature: 'phase1.seasonal_color', group: 'assessment', target: { screen: 'SelfDraping' } },
+  { id: 'myColours', feature: 'phase1.seasonal_color', group: 'assessment', target: { screen: 'MyPalette' } },
 
   { id: 'outfits', feature: 'phase1.outfit_recommendations', group: 'recommendations', target: { screen: 'Recommendations', params: { category: 'outfits' } } },
   { id: 'tryOn', feature: 'phase1.virtual_tryon', group: 'recommendations', target: { screen: 'TryOn', params: { kind: 'garment' } } },

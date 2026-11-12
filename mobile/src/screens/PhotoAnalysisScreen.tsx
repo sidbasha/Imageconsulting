@@ -110,6 +110,13 @@ export function PhotoAnalysisScreen({ route, navigation }: Props) {
               {shown.profile.title}
             </AppText>
             <AppText>{shown.profile.summary}</AppText>
+            {shown.colour_type ? (
+              <View style={styles.gap}>
+                <AppText variant="heading" testID="colour-type">{t('analysis.colourType', { title: shown.colour_type.title })}</AppText>
+                <Palette colors={shown.colour_type.signature} />
+                <Button kind="soft" label={t('analysis.seePalette')} onPress={() => navigation.navigate('MyPalette')} testID="see-palette" />
+              </View>
+            ) : null}
             {shown.low_confidence ? (
               <AppText variant="small" muted testID="low-confidence">
                 {t('analysis.lowConfidence')}

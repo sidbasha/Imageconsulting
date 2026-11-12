@@ -13,7 +13,8 @@ import { TryOnScreen } from '../screens/TryOnScreen';
 import { StylistServicesScreen } from '../screens/StylistServicesScreen';
 import { ReportEditorScreen } from '../screens/ReportEditorScreen';
 import { WorkspaceScreen } from '../screens/WorkspaceScreen';
-import { DrapingStudioScreen } from '../screens/DrapingStudioScreen';
+import { DrapingStudioScreen, SelfDrapingScreen } from '../screens/DrapingStudioScreen';
+import { MyPaletteScreen } from '../screens/MyPaletteScreen';
 import { ClientDetailScreen, ClientsScreen } from '../screens/ClientsScreen';
 import { FeaturedScreen } from '../screens/FeaturedScreen';
 import { PhotoAnalysisScreen } from '../screens/PhotoAnalysisScreen';
@@ -70,6 +71,8 @@ export type AppStackParams = {
   Workspace: { id: string };
   DrapingStudio: { id: string; fileId: string; sessionId?: string };
   Clients: undefined;
+  MyPalette: undefined;
+  SelfDraping: { imageId?: string; sessionId?: string } | undefined;
   ClientDetail: { id: string; name: string };
   Featured: undefined;
   AdminApprovals: undefined;
@@ -147,6 +150,8 @@ export function RootNavigator() {
           <AppStack.Screen name="Workspace" component={WorkspaceScreen} />
           <AppStack.Screen name="DrapingStudio" component={DrapingStudioScreen} />
           <AppStack.Screen name="Clients" component={ClientsScreen} />
+          <AppStack.Screen name="MyPalette" component={MyPaletteScreen} />
+          <AppStack.Screen name="SelfDraping" component={SelfDrapingScreen} />
           <AppStack.Screen name="ClientDetail" component={ClientDetailScreen} />
           <AppStack.Screen name="Featured" component={FeaturedScreen} />
           <AppStack.Screen name="AdminApprovals" component={AdminApprovalsScreen} />

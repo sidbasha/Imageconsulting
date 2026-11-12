@@ -29,6 +29,7 @@ const ENTRY = {
   consultations: MessagesSquare, messages: Mail, occasionAudit: Wine, wardrobeAudit: Layers, makeupAudit: Brush, expertColor: Flower2,
   personalShopper: Handbag, nearbyStylists: MapPin, guides: BookOpen, reports: FileText, shop: Gift, offers: Tag, vouchers: Ticket,
   profile: UserRound, subscription: Crown, rewards: Gem, redeem: BadgePercent, becomeStylist: WandSparkles,
+  selfDraping: Layers, myColours: SwatchBook,
 } as Record<string, typeof Sparkles>;
 
 type Props = { size?: number; color?: string; strokeWidth?: number };

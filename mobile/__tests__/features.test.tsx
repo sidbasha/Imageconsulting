@@ -93,6 +93,49 @@ test('photo analysis: photos show as pictures, an earlier result is labelled as 
   expect(screen.queryByTestId('previous-result')).toBeNull();
 });
 
+test('my colours: no palette yet, guided draping on her own photo, then her palette', async () => {
+  const { api, server, user } = start([...PHASE1, 'phase1.seasonal_color']);
+  const sw = (hex: string, family = 'blue', tone = 'mid') => ({ hex, name: `n${hex}`, family, tone });
+  const BRIGHT_WINTER = {
+    key: 'bright_winter', season: 'winter', dominant: 'bright', title: 'Bright Winter', summary: 'Clear and cool.',
+    axes: { warmth: -0.35, depth: 0.15, clarity: 1 }, neutrals: [sw('#edf4fc')], colours: [sw('#0992d3'), sw('#e85682', 'pink')],
+    lips: [sw('#e85682')], hair: [sw('#2f353b')], metals: ['silver'], avoid: [sw('#a8847b')], avoid_type: 'soft_autumn',
+    signature: ['#e75c61', '#2398a1', '#e85682', '#289e4d'],
+  };
+  let palette: any = null;
+  const answers: any[] = [];
+  const base = { id: 'd1', file_id: 'p1', created_at: '2026-11-12T00:00:00Z', custom_palette: null, notes: null, axes: { warmth: 0, depth: 0, clarity: 0 } };
+  server.state.routes = {
+    'GET /assessment-images': () => [200, [FACE_PHOTO]],
+    'GET /assessment-images/p1/file': () => [200, new Uint8Array([0xff, 0xd8])],
+    'GET /my-palette': () => [200, palette],
+    'POST /my-draping': body => {
+      expect(body).toEqual({ image_id: 'p1' });
+      return [201, { ...base, status: 'in_progress', answers: 0, next: { step: 'confirm', number: 4, of: 4, title: 'Your type', prompt: 'Choose.',
+        options: [{ key: 'bright_winter', title: 'Bright Winter', score: 0.7, drapes: BRIGHT_WINTER.signature }] } }];
+    },
+    'POST /my-draping/d1/answer': body => {
+      answers.push(body);
+      palette = { ...BRIGHT_WINTER, basis: 'self_draping', since: '2026-11-12T00:00:00Z', custom_palette: null };
+      return [200, { ...base, status: 'complete', answers: 12, result: { colour_type: BRIGHT_WINTER, scores: [] } }];
+    },
+  };
+  await render(<App api={api} />);
+  await signIn(user);
+  await user.press(screen.getByTestId('entry-myColours'));
+  expect(await screen.findByTestId('palette-none')).toBeOnTheScreen();
+  await user.press(screen.getByTestId('go-self-draping'));
+  expect(await screen.findByTestId('self-photo-p1')).toBeOnTheScreen();
+  await user.press(screen.getByTestId('self-start'));
+  await user.press(await screen.findByTestId('choose-bright_winter'));
+  expect(answers).toEqual([{ step: 'confirm', pick: 'bright_winter' }]);
+  expect(await screen.findByTestId('studio-result')).toHaveTextContent('Bright Winter');
+  expect(screen.queryByTestId('studio-save')).toBeNull(); // consultant tools are not shown to customers
+  await user.press(screen.getByTestId('see-palette'));
+  expect(await screen.findByText('From your guided draping')).toBeOnTheScreen();
+  expect(screen.getByTestId('palette-title')).toHaveTextContent('Bright Winter');
+});
+
 test('previews come back as an image', async () => {
   const { api, server, user } = start([...PHASE1, 'phase1.hair_preview']);
   const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);

@@ -138,7 +138,9 @@
     "profile": "My profile",
     "becomeStylist": "Become a stylist",
     "outfitColour": "Try outfit colours",
-    "hairStyles": "Try a hairstyle"
+    "hairStyles": "Try a hairstyle",
+    "selfDraping": "Find your colours",
+    "myColours": "My colours"
   },
   "assessment": {
     "start": "Start",
@@ -250,7 +252,9 @@
     "previousNote": "Saved from an earlier analysis. Analyse a photo to get a new one.",
     "latest": "New result",
     "fromPhoto": "From this photo",
-    "analysed": "Analysed"
+    "analysed": "Analysed",
+    "colourType": "Your colour type: {{title}}",
+    "seePalette": "See your full palette"
   },
   "preview": {
     "title": {
@@ -917,5 +921,28 @@
     },
     "open": "Open workspace",
     "inProgress": "In progress"
+  },
+  "selfDraping": {
+    "title": "Find your colours",
+    "heading": "Guided draping, on your own photo",
+    "explain": "We drape coloured fabric under your face, two at a time. You choose which looks better: warmer or cooler, lighter or deeper, brighter or softer. Then you pick from the three closest of 12 colour types.",
+    "tips": "Use a daylight photo facing the camera, no filter, hair away from your face. Look at your skin, eyes and shadows, not the colour you like most.",
+    "start": "Start",
+    "seePalette": "See my colours",
+    "indicative": "Your own reading. An expert colour analysis with a consultant can confirm it."
+  },
+  "myPalette": {
+    "title": "My colours",
+    "basis": {
+      "expert": "From your consultant's report",
+      "self_draping": "From your guided draping",
+      "photo_analysis": "From your photo analysis"
+    },
+    "consultantPicks": "Your consultant's picks",
+    "none": "You don't have a palette yet.",
+    "noneNote": "Find your colours with guided draping, or analyse a colour photo.",
+    "redo": "Do the guided draping again",
+    "photo": "Analyse a photo",
+    "expert": "Book an expert colour analysis"
   }
 }
