@@ -24,7 +24,8 @@ from app.core import keep_alive
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     settings = get_settings()
-    stop = keep_alive.start(settings.keep_alive_url, settings.keep_alive_minutes) if settings.keep_alive_url else None
+    url = keep_alive.resolve(settings.keep_alive_url)
+    stop = keep_alive.start(url, settings.keep_alive_minutes) if url else None
     yield
     if stop:
         stop.set()

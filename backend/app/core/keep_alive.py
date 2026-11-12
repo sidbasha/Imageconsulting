@@ -10,10 +10,19 @@ This is for demos only: a paid instance does not sleep and needs none of this.
 """
 
 import logging
+import os
 import threading
 import urllib.request
 
 logger = logging.getLogger("app.keep_alive")
+
+
+def resolve(setting: str) -> str:
+    """The URL to ping. "auto" means this Render service's own address (RENDER_EXTERNAL_URL)."""
+    if setting.strip().lower() == "auto":
+        external = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
+        return f"{external}/health" if external else ""
+    return setting.strip()
 
 
 def ping(url: str, timeout: float = 30) -> bool:

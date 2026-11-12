@@ -64,3 +64,12 @@ def test_app_starts_keep_alive_only_when_configured(monkeypatch):
     finally:
         get_settings.cache_clear()
     assert started == [("https://api.example.com/health", 10)]
+
+
+def test_auto_uses_render_external_url(monkeypatch):
+    monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
+    assert keep_alive.resolve("auto") == ""
+    monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://ic-api.onrender.com/")
+    assert keep_alive.resolve("auto") == "https://ic-api.onrender.com/health"
+    assert keep_alive.resolve(" https://x.example/health ") == "https://x.example/health"
+    assert keep_alive.resolve("") == ""

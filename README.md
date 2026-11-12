@@ -66,12 +66,22 @@ refused with the reason. Switching something off hides it; data is kept. Run
 `python -m app.cli apply-due` every minute (cron) so a scheduled release activates on time, and
 `python -m app.cli renew-subscriptions` daily.
 
+## Deploy the API to Render (free demo)
+
+`render.yaml` describes one free Docker web service in Ohio, next to the Neon database.
+In the Render dashboard: **New → Blueprint**, connect this GitHub repo and branch, then paste
+the Neon pooled URL into `IC_DATABASE_URL` and the direct URL into `IC_MIGRATION_DATABASE_URL`.
+Each start runs migrations, the seed and `release apply`. The free instance has 512 MB RAM and
+a disk that is wiped on restart, so uploaded photos do not survive a redeploy (object storage
+is the fix). Point the app at it with `PRODUCTION_API_URL` in `mobile/src/config.ts`.
+
 ## Demo hosting that does not sleep
 
 Free hosts (e.g. Render's free web service) stop the API after ~15 minutes without traffic.
 Two pings keep a demo awake:
 
-1. **Self-ping:** set `IC_KEEP_ALIVE_URL=https://<api-host>/health` on the host. The API
+1. **Self-ping:** set `IC_KEEP_ALIVE_URL=https://<api-host>/health` on the host (on Render,
+   `auto` uses the service's own address; `render.yaml` sets it). The API
    requests its own public health check every `IC_KEEP_ALIVE_MINUTES` (default 10).
 2. **Backup cron:** `.github/workflows/keep-alive.yml` pings the same URL every 10 minutes
    from GitHub Actions, which wakes the API if it ever did sleep. Set the repository

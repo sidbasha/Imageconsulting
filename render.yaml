@@ -1,0 +1,30 @@
+# Render Blueprint: the API as one free Docker web service, database on Neon.
+# Dashboard → New → Blueprint → pick this repo. Render asks for the two values marked sync: false.
+services:
+  - type: web
+    name: image-consulting-api
+    runtime: docker
+    plan: free
+    region: ohio            # same AWS region as the Neon database (us-east-2)
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # staging, not production: keeps the sandbox payment gateway for the demo.
+      - key: IC_ENV
+        value: staging
+      - key: IC_JWT_SECRET
+        generateValue: true
+      # Neon pooled URL, postgresql+psycopg://…-pooler…/neondb?sslmode=require&channel_binding=require
+      - key: IC_DATABASE_URL
+        sync: false
+      # Neon direct URL (no -pooler) for migrations at start.
+      - key: IC_MIGRATION_DATABASE_URL
+        sync: false
+      # Free instances sleep after 15 idle minutes; "auto" pings this service's own /health.
+      - key: IC_KEEP_ALIVE_URL
+        value: auto
+      - key: IC_KEEP_ALIVE_MINUTES
+        value: "10"
