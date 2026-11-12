@@ -73,6 +73,8 @@ def _render(db, storage, user, image_id, needs: str, draw) -> Response:
         raise AppError(422, "wrong_photo_kind", {"needs": needs})
     try:
         out = draw(service.load_rgb(storage, image))
+    except FileNotFoundError as exc:
+        raise AppError(404, "photo_missing") from exc
     except engine.ModelsMissing as exc:
         raise AppError(503, "analysis_unavailable") from exc
     except Unusable as exc:
@@ -331,7 +333,7 @@ def self_compare(body: SelfCompareIn, user: User = Depends(get_current_user), db
                  storage: Storage = Depends(get_storage)) -> Response:
     if not all(previews.HEX.match(c) for c in body.colours):
         raise AppError(422, "invalid_preview_request")
-    return _render(db, storage, user, body.image_id, "face", lambda rgb: previews.side_by_side(previews.drapes(rgb, body.colours), height=420))
+    return _render(db, storage, user, body.image_id, "face", lambda rgb: previews.side_by_side(previews.drapes(rgb, body.colours), height=420, per_row=2))
 
 
 @self_draping.post("", status_code=status.HTTP_201_CREATED)

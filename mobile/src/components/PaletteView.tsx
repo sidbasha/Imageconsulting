@@ -25,13 +25,13 @@ export function PaletteView({ type, selected, onToggle, testID }: Props) {
   const families = Array.from(new Set(type.colours.map(c => c.family)));
   const tap = (s: Swatch) => (onToggle ? onToggle(s.hex) : setFocus(f => (f?.hex === s.hex ? null : s)));
 
-  const chip = (s: Swatch, size: 'lg' | 'md' = 'md') => {
+  const chip = (s: Swatch, size: 'lg' | 'md' | 'fill' | 'cell' = 'md') => {
     const isOn = selected?.includes(s.hex);
     return (
       <Pressable key={s.hex + s.name} onPress={() => tap(s)} accessibilityRole={onToggle ? 'checkbox' : 'button'}
         accessibilityState={onToggle ? { checked: !!isOn } : undefined} accessibilityLabel={`${s.name} ${s.hex}`}
         testID={`palette-${s.hex}`}
-        style={[size === 'lg' ? styles.swatchLg : styles.swatch, { backgroundColor: s.hex }, isOn && styles.swatchOn]} />
+        style={[size === 'lg' ? styles.swatchLg : size === 'fill' ? styles.swatchFill : size === 'cell' ? styles.swatchCell : styles.swatch, { backgroundColor: s.hex }, isOn && styles.swatchOn]} />
     );
   };
 
@@ -58,7 +58,7 @@ export function PaletteView({ type, selected, onToggle, testID }: Props) {
 
       <Card>
         <AppText variant="heading">{t('palette.neutrals')}</AppText>
-        <View style={styles.row}>{type.neutrals.map(s => chip(s, 'lg'))}</View>
+        <View style={styles.line}>{type.neutrals.map(s => chip(s, 'lg'))}</View>
       </Card>
 
       <Card>
@@ -67,7 +67,7 @@ export function PaletteView({ type, selected, onToggle, testID }: Props) {
         <View style={styles.grid}>
           {families.map(family => (
             <View key={family} style={styles.family}>
-              {type.colours.filter(c => c.family === family).map(s => chip(s))}
+              {type.colours.filter(c => c.family === family).map(s => chip(s, 'cell'))}
             </View>
           ))}
         </View>
@@ -75,7 +75,7 @@ export function PaletteView({ type, selected, onToggle, testID }: Props) {
 
       <Card>
         <AppText variant="heading">{t('palette.lips')}</AppText>
-        <View style={styles.row}>{type.lips.map(s => chip(s))}</View>
+        <View style={styles.line}>{type.lips.map(s => chip(s, 'fill'))}</View>
       </Card>
 
       <Card>
@@ -105,7 +105,7 @@ export function PaletteView({ type, selected, onToggle, testID }: Props) {
       <Card>
         <Tag label={t('palette.avoid')} tone="lilac" />
         <AppText variant="small" muted>{t('palette.avoidNote')}</AppText>
-        <View style={styles.row}>{type.avoid.map(s => chip(s))}</View>
+        <View style={styles.line}>{type.avoid.map(s => chip(s, 'fill'))}</View>
       </Card>
     </View>
   );
@@ -120,13 +120,16 @@ const styles = StyleSheet.create({
   heroBody: { color: '#FFF3F6' },
   signature: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   sigDot: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: '#FFFFFF' },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  family: { gap: 4 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between' },
+  line: { flexDirection: 'row', gap: 6, alignSelf: 'stretch' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing.md },
+  family: { gap: 4, width: '18%' },
   swatch: { width: 44, height: 44, borderRadius: radius.sm, borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },
-  swatchLg: { width: 48, height: 64, borderRadius: radius.md, borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },
+  swatchLg: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, height: 64, borderRadius: radius.md, borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },
+  swatchFill: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, aspectRatio: 1, borderRadius: radius.sm, borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },
+  swatchCell: { width: '100%', aspectRatio: 1, borderRadius: radius.sm, borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },
   swatchOn: { borderWidth: 3, borderColor: colors.text },
-  labelled: { alignItems: 'center', gap: 4, width: 76 },
+  labelled: { alignItems: 'center', gap: 4, width: '23%' },
   center: { textAlign: 'center' },
   metal: { width: 44, height: 44, borderRadius: 22, boxShadow: 'inset 0px -6px 10px rgba(0,0,0,0.18)' },
   focus: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

@@ -129,6 +129,15 @@ function Studio({ adapter, photoId, sessionId, onBack, onReport, onSeePalette }:
 
   // The drape image for the comparison on screen; re-fetched only when the comparison changes.
   const pairKey = step && step.step !== 'confirm' ? `${step.pair.a}-${step.pair.b}` : null;
+  // Reaching the type comparison: drop the last pair's image until a type is shown on the face.
+  const confirming = step?.step === 'confirm';
+  useEffect(() => {
+    if (confirming && shownPair.current) {
+      shownPair.current = null;
+      setImage(null);
+      setImageKey(null);
+    }
+  }, [confirming]);
   useEffect(() => {
     if (!step || step.step === 'confirm' || !photo || !pairKey || pairKey === shownPair.current) {
       return;
@@ -212,7 +221,7 @@ function Studio({ adapter, photoId, sessionId, onBack, onReport, onSeePalette }:
           <>
             <AppText variant="heading">{step.title}</AppText>
             <AppText muted>{step.prompt}</AppText>
-            {image ? <Image source={{ uri: image }} style={styles.grid} resizeMode="contain" testID="type-drapes" /> : null}
+            {image ? <Image source={{ uri: image }} style={styles.square} resizeMode="contain" testID="type-drapes" /> : null}
             {step.options.map(o => (
               <Card key={o.key} style={imageKey === o.key ? styles.optionOn : undefined}>
                 <Row style={styles.optionHead}>
@@ -223,10 +232,14 @@ function Studio({ adapter, photoId, sessionId, onBack, onReport, onSeePalette }:
                   {o.drapes.map(hex => <View key={hex} style={[styles.drape, { backgroundColor: hex }]} />)}
                 </Row>
                 <Row style={styles.optionHead}>
-                  <Button kind="soft" label={t('studio.showOnFace')} onPress={() => showType(o.drapes, o.key)} loading={busy === `show-${o.key}`}
-                    testID={`show-${o.key}`} />
-                  <Button label={t('studio.choose')} onPress={() => answer({ step: 'confirm', pick: o.key })} loading={busy === 'answer'}
-                    testID={`choose-${o.key}`} />
+                  <View style={styles.flex}>
+                    <Button kind="soft" label={t('studio.showOnFace')} onPress={() => showType(o.drapes, o.key)} loading={busy === `show-${o.key}`}
+                      testID={`show-${o.key}`} />
+                  </View>
+                  <View style={styles.flex}>
+                    <Button label={t('studio.choose')} onPress={() => answer({ step: 'confirm', pick: o.key })} loading={busy === 'answer'}
+                      testID={`choose-${o.key}`} />
+                  </View>
                 </Row>
               </Card>
             ))}
@@ -331,6 +344,7 @@ const styles = StyleSheet.create({
   stage: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.sm, gap: spacing.sm, boxShadow: shadows.soft },
   pair: { width: '100%', aspectRatio: 1.9, borderRadius: radius.md },
   grid: { width: '100%', aspectRatio: 1.6, borderRadius: radius.md, backgroundColor: colors.surface },
+  square: { width: '100%', aspectRatio: 1, borderRadius: radius.md, backgroundColor: colors.surface },
   sides: { justifyContent: 'space-around', gap: spacing.sm },
   side: { alignItems: 'center', gap: 4 },
   dot: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: colors.surface, boxShadow: shadows.soft },

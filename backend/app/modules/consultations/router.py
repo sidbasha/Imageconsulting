@@ -239,9 +239,10 @@ def open_workspace(consultation: Consultation = Depends(_stylist), user: User = 
 
 def _render(db, storage, consultation, file_id, draw) -> Response:
     service.require_workspace(db, consultation)
-    rgb = service.face_photo(db, storage, consultation, file_id)
     try:
-        out = draw(rgb)
+        out = draw(service.face_photo(db, storage, consultation, file_id))
+    except FileNotFoundError as exc:
+        raise AppError(404, "photo_missing") from exc
     except engine.ModelsMissing as exc:
         raise AppError(503, "analysis_unavailable") from exc
     except Unusable as exc:
@@ -272,7 +273,8 @@ def compare(body: CompareIn, consultation: Consultation = Depends(_stylist), db:
             raise AppError(422, "invalid_preview_request")
 
     def grid(rgb):
-        return previews.side_by_side(previews.drapes(rgb, body.colours), height=420)
+        # Phones: two per row up to four drapes, then four per row.
+        return previews.side_by_side(previews.drapes(rgb, body.colours), height=420, per_row=2 if len(body.colours) <= 4 else 4)
 
     return _render(db, storage, consultation, body.file_id, grid)
 

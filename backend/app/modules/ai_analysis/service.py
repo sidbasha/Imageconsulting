@@ -47,6 +47,8 @@ def run(db: Session, storage: Storage, user: User, kind: str, image_id: uuid.UUI
         raise AppError(422, "wrong_photo_kind", {"needs": photo_kind})
     try:
         result = analyse(load_rgb(storage, image))
+    except FileNotFoundError as exc:
+        raise AppError(404, "photo_missing") from exc
     except engine.ModelsMissing as exc:
         raise AppError(503, "analysis_unavailable") from exc
     except Unusable as exc:

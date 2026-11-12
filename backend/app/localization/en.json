@@ -87,5 +87,6 @@
   "workspace_not_open": "Open the workspace for this client first.",
   "draping_out_of_step": "That comparison is no longer the current one. Refresh and continue.",
   "invalid_palette": "Each palette colour must be a hex colour such as #8e3b2c.",
-  "draping_not_complete": "Finish the draping analysis first."
+  "draping_not_complete": "Finish the draping analysis first.",
+  "photo_missing": "This photo is no longer available. Please add it again."
 }
