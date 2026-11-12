@@ -10,7 +10,9 @@ import { Platform } from 'react-native';
  * Release builds must use HTTPS: both platforms block plain HTTP there.
  */
 const DEV_API_URL: string | null = null; // e.g. 'http://192.168.1.20:8000'
-const PRODUCTION_API_URL = ''; // set before the first store build, e.g. 'https://api.example.ae'
+// Free Render demo (render.yaml). Replace with the real API domain before a store release.
+const PRODUCTION_API_URL = 'https://image-consulting-api.onrender.com';
+// To point a debug build (simulator) at Render instead of this machine, set DEV_API_URL to the same address.
 
 function resolveApiUrl(): string {
   if (__DEV__) {
