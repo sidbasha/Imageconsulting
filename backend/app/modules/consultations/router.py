@@ -169,6 +169,23 @@ def save_report(body: ReportIn, request: Request, consultation: Consultation = D
     return service.describe_report(db, service.save_report(db, consultation, body.content), pick_language(request))
 
 
+class FromDrapingIn(BaseModel):
+    session_id: uuid.UUID
+
+
+@router.post("/{consultation_id}/report/from-draping", dependencies=[Depends(require_feature("phase2.expert_reports"))])
+def report_from_draping(body: FromDrapingIn, request: Request, consultation: Consultation = Depends(_stylist),
+                        db: Session = Depends(get_db)) -> dict:
+    """Fill the report's colour fields (type, season, temperature, contrast, palette, metals, makeup, hair,
+    clothing) from a finished draping analysis of this client."""
+    service.require_active(db, consultation)
+    session = db.get(DrapingSession, body.session_id)
+    if session is None or session.customer_id != consultation.customer_id or session.profile_id != consultation.profile_id:
+        raise AppError(404, "not_found")
+    language = pick_language(request)
+    return service.describe_report(db, service.report_from_draping(db, consultation, session, language), language)
+
+
 @router.post("/{consultation_id}/report/deliver", dependencies=[Depends(require_feature("phase2.expert_reports"))])
 def deliver(request: Request, consultation: Consultation = Depends(_stylist), db: Session = Depends(get_db)) -> dict:
     return service.describe_report(db, service.deliver_report(db, consultation), pick_language(request))

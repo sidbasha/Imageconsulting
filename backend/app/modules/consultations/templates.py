@@ -7,8 +7,14 @@ the client's own report format; edit them in the admin (row 56).
 """
 
 
+from app.modules.ai_analysis.colour_types import TYPES as COLOUR_TYPES
+
+
 def L(en, ar):
     return {"en": en, "ar": ar}
+
+
+COLOUR_TYPE_KEYS = [t.key for t in COLOUR_TYPES]
 
 
 SUITABILITY = {"key": "suitability", "title": L("Suitability", "مدى الملاءمة"), "type": "decision",
@@ -33,6 +39,7 @@ TEMPLATES = [
     {"key": "expert_color.standard", "service_kind": "expert_color", "title": L("Expert colour analysis", "تحليل الألوان من خبيرة"),
      "sections": [
          {"key": "season", "title": L("Season", "الموسم"), "type": "choice", "options": ["spring", "summer", "autumn", "winter"], "required": True},
+         {"key": "colour_type", "title": L("Colour type", "نوع الألوان"), "type": "choice", "options": COLOUR_TYPE_KEYS, "required": True},
          {"key": "temperature", "title": L("Temperature", "درجة الدفء"), "type": "choice", "options": ["warm", "cool", "neutral"], "required": True},
          {"key": "contrast", "title": L("Contrast", "التباين"), "type": "choice", "options": ["low", "medium", "high"], "required": True},
          {"key": "palette", "title": L("Your palette", "لوحة ألوانك"), "type": "palette", "required": True},
@@ -53,3 +60,4 @@ OPTION_LABELS = {
     "neutral": L("Neutral", "محايد"), "low": L("Low", "منخفض"), "medium": L("Medium", "متوسّط"), "high": L("High", "مرتفع"),
     "gold": L("Gold", "الذهبي"), "silver": L("Silver", "الفضّي"), "rose_gold": L("Rose gold", "الذهبي الوردي"), "mixed": L("Mixed", "مزيج"),
 }
+OPTION_LABELS.update({t.key: t.title for t in COLOUR_TYPES})

@@ -18,7 +18,7 @@ from app.modules.auth.models import User
 from app.modules.commerce import service as commerce
 from app.modules.commerce.documents import user_results
 from app.modules.consultations import templates
-from app.modules.consultations.models import Consultation, ConsultationFile, ExpertReport, ReportTemplate, WorkspaceAccess
+from app.modules.consultations.models import DrapingSession, Consultation, ConsultationFile, ExpertReport, ReportTemplate, WorkspaceAccess
 from app.modules.marketplace.models import Booking, StylistProfile
 from app.modules.platform import service as platform
 
@@ -41,11 +41,57 @@ HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 def seed(db: Session) -> None:
-    have = set(db.scalars(select(ReportTemplate.key)))
+    """Adds missing templates, and sections added to a shipped template since it was seeded.
+    Never removes or rewrites a section an administrator may have edited."""
+    have = {t.key: t for t in db.scalars(select(ReportTemplate))}
     for spec in templates.TEMPLATES:
-        if spec["key"] not in have:
+        existing = have.get(spec["key"])
+        if existing is None:
             db.add(ReportTemplate(**spec))
+            continue
+        sections = list(existing.sections)
+        keys = {s["key"] for s in sections}
+        for i, section in enumerate(spec["sections"]):
+            if section["key"] in keys:
+                continue
+            before = spec["sections"][i - 1]["key"] if i else None
+            at = next((j + 1 for j, s in enumerate(sections) if s["key"] == before), len(sections))
+            sections.insert(at, section)
+            keys.add(section["key"])
+        if len(sections) != len(existing.sections):
+            existing.sections = sections
     db.flush()
+
+
+def report_from_draping(db: Session, consultation: Consultation, session: DrapingSession, language: str) -> ExpertReport:
+    """Fills the colour fields of the draft report from a finished draping analysis.
+    Explanation, recommendations and the suitability decision stay the consultant's own."""
+    from app.modules.ai_analysis import colour_types
+
+    if session.status != "complete":
+        raise AppError(409, "draping_not_complete")
+    report = db.execute(select(ExpertReport).where(ExpertReport.consultation_id == consultation.id)).scalar_one_or_none()
+    template = db.get(ReportTemplate, report.template_id) if report else template_for(db, consultation.kind)
+    wanted = {s["key"] for s in template.sections}
+    p = colour_types.palette(session.colour_type)
+    # The chosen type, not the raw answers, describes the client: the consultant's pick is the result.
+    warmth, depth, clarity = (p["axes"][a] for a in ("warmth", "depth", "clarity"))
+    name = lambda d: d.get(language) or d["en"]  # noqa: E731
+    metals = p["metals"]
+    filled = {
+        "colour_type": session.colour_type,
+        "season": p["season"],
+        "temperature": "warm" if warmth > 0.3 else "cool" if warmth < -0.3 else "neutral",
+        "contrast": "high" if clarity > 0.4 or depth > 0.7 else "low" if clarity < -0.4 else "medium",
+        "palette": (session.custom_palette or [c["hex"] for c in p["colours"] if c["tone"] == "mid"]
+                    + [n["hex"] for n in p["neutrals"][1:5]])[:24],
+        "metals": "rose_gold" if metals[-1] == "rose_gold" and abs(warmth) < 0.3 else metals[0] if metals[0] in ("gold", "silver") else "mixed",
+        "makeup": [f"{name(lip['name'])} ({lip['hex']})" for lip in p["lips"]][:6],
+        "hair": [name(h["name"]) for h in p["hair"]],
+        "clothing": [name(c["name"]) for c in p["colours"] if c["tone"] == "mid"][:10],
+    }
+    content = {**(report.content if report else {}), **{k: v for k, v in filled.items() if k in wanted}}
+    return save_report(db, consultation, content)
 
 
 def open_for_booking(db: Session, booking: Booking) -> Consultation:
@@ -216,6 +262,27 @@ def describe_report(db: Session, report: ExpertReport, language: str) -> dict:
             "delivered_at": report.delivered_at, "sections": sections}
 
 
+def _colour_type_pages(key: str, language: str) -> list:
+    """The full palette of the client's colour type, named swatches by group."""
+    from app.modules.ai_analysis import colour_types
+
+    t = colour_types.summary(key, language)
+    heads = {"en": ("Neutrals", "Colours", "Lips", "Hair colour", "Wear away from the face", "Metals"),
+             "ar": ("الألوان المحايدة", "الألوان", "الشفاه", "لون الشعر", "بعيداً عن الوجه", "المعادن")}[language]
+    metals = {"gold": ("Gold", "ذهبي"), "bronze": ("Bronze", "برونزي"), "copper": ("Copper", "نحاسي"), "silver": ("Silver", "فضّي"),
+              "platinum": ("Platinum", "بلاتيني"), "white_gold": ("White gold", "ذهب أبيض"), "rose_gold": ("Rose gold", "ذهبي وردي")}
+    pair = lambda items: [(i["hex"], i["name"]) for i in items]  # noqa: E731
+    return [
+        pdf.Section(heading=t["title"], paragraphs=[t["summary"]]),
+        pdf.Section(heading=heads[0], swatches=pair(t["neutrals"])),
+        pdf.Section(heading=heads[1], swatches=pair(t["colours"])),
+        pdf.Section(heading=heads[2], swatches=pair(t["lips"])),
+        pdf.Section(heading=heads[3], swatches=pair(t["hair"])),
+        pdf.Section(heading=heads[5], bullets=[metals[m][0 if language == "en" else 1] for m in t["metals"]]),
+        pdf.Section(heading=heads[4], swatches=pair(t["avoid"])),
+    ]
+
+
 def report_pdf(db: Session, consultation: Consultation, report: ExpertReport, language: str) -> bytes:
     described = describe_report(db, report, language)
     profile = db.get(StylistProfile, consultation.profile_id)
@@ -233,6 +300,8 @@ def report_pdf(db: Session, consultation: Consultation, report: ExpertReport, la
             sections.append(pdf.Section(heading=s["title"], bullets=value))
         elif s["type"] == "palette":
             sections.append(pdf.Section(heading=s["title"], palette=value))
+        if s["key"] == "colour_type":
+            sections += _colour_type_pages(value["key"], language)
     if files:
         heading = {"en": "Items reviewed", "ar": "العناصر التي تمّت مراجعتها"}[language]
         verdicts = {"suits": {"en": "Suits you", "ar": "يناسبك"}, "adjust": {"en": "Use with changes", "ar": "استخدميه مع تعديل"},

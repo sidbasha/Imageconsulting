@@ -363,6 +363,48 @@ describe('stylist tools', () => {
     expect(delivered).toBe(true);
   });
 
+  test('report editor: fill the colour fields from a finished draping, then save', async () => {
+    const { api, server, user } = start(FEATURES);
+    let saved: any = null;
+    await openPractice(server, {
+      'GET /consultations/c1': () => [200, CONSULTATION],
+      'GET /consultations/c1/files/f1': () => [200, new Uint8Array([0xff, 0xd8])],
+      'GET /consultations/c1/report/template': () => [200, { key: 'expert_color.standard', title: 'Expert colour analysis', sections: [
+        { key: 'season', title: 'Season', type: 'choice', options: ['spring', 'summer', 'autumn', 'winter'], required: true },
+        { key: 'colour_type', title: 'Colour type', type: 'choice', options: ['deep_autumn', 'warm_autumn', 'soft_autumn'], required: true },
+        { key: 'palette', title: 'Your palette', type: 'palette', options: [], required: true },
+        { key: 'explanation', title: 'Explanation', type: 'text', options: [], required: true },
+      ] }],
+      'GET /workspace/c1/draping': () => [200, [{ id: 's1', file_id: 'f1', status: 'complete', answers: 12, created_at: '2026-11-12T00:00:00Z',
+        axes: { warmth: 1, depth: 1, clarity: -1 }, custom_palette: null, notes: null,
+        result: { colour_type: { key: 'deep_autumn', title: 'Deep Autumn' }, scores: [] } }]],
+      'POST /consultations/c1/report/from-draping': body => {
+        expect(body).toEqual({ session_id: 's1' });
+        return [200, { status: 'draft', sections: [
+          { key: 'season', title: 'Season', type: 'choice', value: { key: 'autumn', label: 'Autumn' } },
+          { key: 'colour_type', title: 'Colour type', type: 'choice', value: { key: 'deep_autumn', label: 'Deep Autumn' } },
+          { key: 'palette', title: 'Your palette', type: 'palette', value: ['#985248', '#127171'] },
+        ] }];
+      },
+      'PUT /consultations/c1/report': body => {
+        saved = body.content;
+        return [200, { status: 'draft' }];
+      },
+    });
+    await render(<App api={api} />);
+    await signIn(user);
+    await user.press(screen.getByTestId('entry-becomeStylist'));
+    await user.press(await screen.findByTestId('open-practice'));
+    await user.press(await screen.findByTestId('report-b1'));
+    await user.press(await screen.findByTestId('fill-s1'));
+    expect(await screen.findByTestId('report-filled')).toBeOnTheScreen();
+    expect(screen.getByTestId('swatch-#127171')).toBeOnTheScreen();
+    await user.type(screen.getByTestId('field-explanation'), 'Rich, warm and deep.');
+    await user.press(screen.getByTestId('save-report'));
+    expect(await screen.findByTestId('report-saved')).toBeOnTheScreen();
+    expect(saved).toEqual({ season: 'autumn', colour_type: 'deep_autumn', palette: ['#985248', '#127171'], explanation: 'Rich, warm and deep.' });
+  });
+
   test('workspace: without credits she is sent to buy them; with credits she drapes and compares', async () => {
     const { api, server, user } = start(FEATURES);
     let credits = 0;

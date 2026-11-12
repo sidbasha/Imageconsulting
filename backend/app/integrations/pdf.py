@@ -44,6 +44,7 @@ class Section:
     bullets: list[str] = field(default_factory=list)
     palette: list[str] | None = None  # hex colours drawn as swatches
     rows: list[tuple[str, str]] | None = None  # label/value pairs
+    swatches: list[tuple[str, str]] | None = None  # (hex, name): a labelled colour grid
 
 
 def _text(value: str, rtl: bool) -> str:
@@ -88,6 +89,7 @@ def build(*, title: str, subtitle: str, sections: list[Section], language: str, 
         "h": ParagraphStyle("h", fontName=bold, fontSize=13, leading=20, alignment=align, spaceBefore=10, spaceAfter=4, textColor=colors.HexColor("#7a3e5a")),
         "p": ParagraphStyle("p", fontName=regular, fontSize=10.5, leading=16, alignment=align),
         "foot": ParagraphStyle("foot", fontName=regular, fontSize=8, leading=12, alignment=align, textColor=colors.HexColor("#6b5b63")),
+        "swatch": ParagraphStyle("swatch", fontName=regular, fontSize=7, leading=9, alignment=1, textColor=colors.HexColor("#4a3a42")),
     }
     story = [Paragraph(_text(title, rtl), styles["title"]), Paragraph(_text(subtitle, rtl), styles["subtitle"]), Spacer(1, 6 * mm)]
     for section in sections:
@@ -104,11 +106,32 @@ def build(*, title: str, subtitle: str, sections: list[Section], language: str, 
             table.setStyle(TableStyle([("LINEBELOW", (0, 0), (-1, -1), 0.3, colors.HexColor("#e5dde1")), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
             story.append(table)
         if section.palette:
-            cells = [["" for _ in section.palette]]
-            swatches = Table(cells, colWidths=[18 * mm] * len(section.palette), rowHeights=[12 * mm])
-            swatches.setStyle(TableStyle([("BACKGROUND", (i, 0), (i, 0), colors.HexColor(c)) for i, c in enumerate(section.palette)]))
+            per_row = 9  # fits the A4 text width
+            rows = [section.palette[i:i + per_row] for i in range(0, len(section.palette), per_row)]
+            cells = [["" for _ in range(per_row)] for _ in rows]
+            swatches = Table(cells, colWidths=[18 * mm] * per_row, rowHeights=[12 * mm] * len(rows))
+            # Right to left: the first colour sits at the right edge and short rows end on the left.
+            place = (lambda i: per_row - 1 - i) if rtl else (lambda i: i)
+            swatches.setStyle(TableStyle([("BACKGROUND", (place(i), r), (place(i), r), colors.HexColor(c))
+                                          for r, row in enumerate(rows) for i, c in enumerate(row)]))
             swatches.hAlign = "RIGHT" if rtl else "LEFT"
             story += [Spacer(1, 2 * mm), swatches]
+        if section.swatches:
+            per_row = 6
+            items = list(section.swatches)
+            grid = [items[i:i + per_row] for i in range(0, len(items), per_row)]
+            data, style = [], [("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (0, 0), (-1, -1), "CENTER")]
+            for r, row in enumerate(grid):
+                if rtl:
+                    row = list(reversed(row))
+                data.append(["" for _ in row] + [""] * (per_row - len(row)))
+                data.append([Paragraph(_text(name, rtl), styles["swatch"]) for _, name in row] + [""] * (per_row - len(row)))
+                style += [("BACKGROUND", (i, 2 * r), (i, 2 * r), colors.HexColor(hex_)) for i, (hex_, _) in enumerate(row)]
+            heights = [h for _ in grid for h in (14 * mm, 8 * mm)]
+            table = Table(data, colWidths=[28 * mm] * per_row, rowHeights=heights)
+            table.setStyle(TableStyle(style))
+            table.hAlign = "RIGHT" if rtl else "LEFT"
+            story += [Spacer(1, 2 * mm), table]
     story += [Spacer(1, 8 * mm), Paragraph(_text(footer, rtl), styles["foot"])]
 
     buffer = BytesIO()

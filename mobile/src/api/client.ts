@@ -555,6 +555,8 @@ export function createApiClient(options: Options) {
     addSlots: (starts: string[], minutes: number) => request<Slot[]>('POST', '/stylist/slots', { body: { starts, minutes } }),
     deleteSlot: (id: string) => request<void>('DELETE', `/stylist/slots/${id}`),
     reportTemplate: (consultationId: string) => request<ReportTemplate>('GET', `/consultations/${consultationId}/report/template`),
+    reportFromDraping: (consultationId: string, sessionId: string) =>
+      request<{ status: string; sections: ReportSection[] }>('POST', `/consultations/${consultationId}/report/from-draping`, { body: { session_id: sessionId } }),
     saveReport: (consultationId: string, content: Record<string, unknown>) =>
       request<{ status: string }>('PUT', `/consultations/${consultationId}/report`, { body: { content } }),
     deliverReport: (consultationId: string) => request<{ status: string }>('POST', `/consultations/${consultationId}/report/deliver`),

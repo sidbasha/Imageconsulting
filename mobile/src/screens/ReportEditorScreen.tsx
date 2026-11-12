@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, ScrollView, StyleSheet, View } from 'react-na
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
-import type { ReportTemplate, TemplateSection } from '../api/client';
+import type { ReportSection, ReportTemplate, TemplateSection } from '../api/client';
 import { AppText, Button, Card, Chips, ErrorBanner, Palette, Screen, ScreenHeader, TextField } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import type { AppStackParams } from '../navigation/RootNavigator';
@@ -13,6 +13,14 @@ import { useLoad } from './useLoad';
 
 type Props = NativeStackScreenProps<AppStackParams, 'ReportEditor'>;
 const HEX = /^#[0-9a-fA-F]{6}$/;
+
+function asValues(sections: ReportSection[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const s of sections) {
+    out[s.key] = Array.isArray(s.value) ? s.value.join(s.type === 'palette' ? ', ' : '\n') : typeof s.value === 'object' ? s.value.key : String(s.value);
+  }
+  return out;
+}
 
 /**
  * The stylist writes the standard expert report (rows 24, 25) for one
@@ -33,16 +41,32 @@ export function ReportEditorScreen({ route, navigation }: Props) {
   const [failure, setFailure] = useState<unknown>(null);
   const [saved, setSaved] = useState<string | null>(null);
 
+  // Finished guided draping analyses for this client can fill the report's colour fields.
+  const drapings = useLoad(
+    () => api.drapingSessions(id).then(list => list.filter(d => d.status === 'complete')).catch(() => []),
+    [api, id, language],
+  );
+
   useEffect(() => {
     const report = loaded.data?.consultation.report;
     if (report) {
-      const initial: Record<string, string> = {};
-      for (const s of report.sections) {
-        initial[s.key] = Array.isArray(s.value) ? s.value.join(s.type === 'palette' ? ', ' : '\n') : typeof s.value === 'object' ? s.value.key : String(s.value);
-      }
-      setValues(initial);
+      setValues(asValues(report.sections));
     }
   }, [loaded.data]);
+
+  const fillFromDraping = async (sessionId: string) => {
+    setBusy(`fill-${sessionId}`);
+    setFailure(null);
+    try {
+      const report = await api.reportFromDraping(id, sessionId);
+      setValues(old => ({ ...old, ...asValues(report.sections) }));
+      setSaved('filled');
+    } catch (e) {
+      setFailure(e);
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const content = (template: ReportTemplate) => {
     const out: Record<string, unknown> = {};
@@ -104,6 +128,17 @@ export function ReportEditorScreen({ route, navigation }: Props) {
               </Card>
             ) : null}
             {delivered ? <AppText testID="report-delivered">{t('report.delivered')}</AppText> : null}
+            {!delivered && data.template.sections.some(s => s.key === 'colour_type') && (drapings.data ?? []).length ? (
+              <Card style={styles.fill}>
+                <AppText variant="heading">{t('report.fromDraping')}</AppText>
+                <AppText variant="small" muted>{t('report.fromDrapingNote')}</AppText>
+                {(drapings.data ?? []).map(d => (
+                  <Button key={d.id} kind="soft" testID={`fill-${d.id}`} loading={busy === `fill-${d.id}`}
+                    label={`${d.result?.colour_type.title ?? ''} · ${d.created_at.slice(0, 10)}`} onPress={() => fillFromDraping(d.id)} />
+                ))}
+                {saved === 'filled' ? <AppText variant="small" testID="report-filled">{t('report.filled')}</AppText> : null}
+              </Card>
+            ) : null}
             {data.template.sections.map(s => (
               <Field key={s.key} section={s} value={values[s.key] ?? ''} disabled={delivered}
                 onChange={v => setValues(old => ({ ...old, [s.key]: v }))} />
@@ -127,7 +162,7 @@ function Field({ section, value, onChange, disabled }: { section: TemplateSectio
   const label = `${section.title}${section.required ? ' *' : ''}`;
   if (section.type === 'decision' || section.type === 'choice') {
     return (
-      <Chips label={label} value={value || null} onChange={v => !disabled && onChange(v)} testID={`field-${section.key}`}
+      <Chips label={label} value={value || null} onChange={v => !disabled && onChange(v)} testID={`field-${section.key}`} scroll={section.options.length > 5}
         options={section.options.map(o => ({ value: o, label: t(`report.options.${o}`, { defaultValue: o }) }))} />
     );
   }
@@ -170,6 +205,7 @@ function FileReview({ consultationId, file, withVerdict }: {
 }
 
 const styles = StyleSheet.create({
+  fill: { gap: spacing.sm, borderColor: colors.gold, borderWidth: 1 },
   content: { padding: spacing.lg, gap: spacing.md },
   file: { gap: spacing.xs },
   photo: { width: '100%', aspectRatio: 1, borderRadius: radius.md },

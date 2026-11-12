@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy import select
 
 from app.integrations.storage import LocalStorage, get_storage
+from app.modules.ai_analysis import colour_types
 from app.modules.commerce.models import Order
 from app.modules.marketplace.models import Booking
 from app.tests.conftest import ELIGIBLE, login
@@ -409,6 +410,59 @@ def test_consultant_sees_her_clients_with_photos_and_colour_types(client, owner,
     assert client.get(f"{API}/stylist/clients", headers=other["headers"]).json() == []
     assert client.get(f"{API}/stylist/clients/{listed[0]['id']}", headers=other["headers"]).status_code == 404
     assert client.get(f"{API}/stylist/clients", headers=customer).status_code == 403
+
+
+def test_report_is_filled_from_draping_and_prints_the_palette(client, owner, customer, phase2, storage, db):
+    import fitz
+
+    headers, cid, face = _open_workspace(client, owner, customer)
+    session = client.post(f"{API}/workspace/{cid}/draping", json={"file_id": face}, headers=headers).json()
+    early = client.post(f"{API}/consultations/{cid}/report/from-draping", json={"session_id": session["id"]}, headers=headers)
+    assert early.status_code == 409 and early.json()["error"]["code"] == "draping_not_complete"
+    picks = {"undertone": "b", "depth": "b", "clarity": "a"}  # cool, light, bright
+    while session["status"] == "in_progress":
+        step = session["next"]
+        answer = {"step": "confirm", "pick": "light_summer" if any(o["key"] == "light_summer" for o in step["options"]) else step["options"][0]["key"]} \
+            if step["step"] == "confirm" else {"step": step["step"], "pair": step["pair"]["index"], "pick": picks[step["step"]]}
+        session = client.post(f"{API}/workspace/{cid}/draping/{session['id']}/answer", json=answer, headers=headers).json()
+    chosen = session["result"]["colour_type"]["key"]
+    client.patch(f"{API}/workspace/{cid}/draping/{session['id']}", json={"custom_palette": ["#a3c4e0", "#e8b4c8"]}, headers=headers)
+
+    filled = client.post(f"{API}/consultations/{cid}/report/from-draping", json={"session_id": session["id"]}, headers=headers)
+    assert filled.status_code == 200, filled.text
+    by_key = {s["key"]: s["value"] for s in filled.json()["sections"]}
+    assert by_key["colour_type"]["key"] == chosen and by_key["season"]["key"] == colour_types.BY_KEY[chosen].season
+    assert by_key["palette"] == ["#a3c4e0", "#e8b4c8"]  # her custom palette wins over the generated one
+    assert by_key["temperature"]["key"] in ("cool", "neutral") and by_key["metals"]["key"] in ("silver", "rose_gold", "mixed")
+    assert len(by_key["makeup"]) == 6 and by_key["hair"] and by_key["clothing"]
+
+    # The consultant writes her own judgement, delivers, and the PDF carries the palette pages.
+    content = {k: (v["key"] if isinstance(v, dict) else v) for k, v in by_key.items()}
+    content.update({"suitability": "suitable", "explanation": "Cool and light.", "recommendations": ["Soft blues near the face."]})
+    assert client.put(f"{API}/consultations/{cid}/report", json={"content": content}, headers=headers).status_code == 200
+    assert client.post(f"{API}/consultations/{cid}/report/deliver", headers=headers).status_code == 200
+    for language, needle in (("en", colour_types.BY_KEY[chosen].title["en"]), ("ar", "المحايدة")):
+        pdf = client.get(f"{API}/consultations/{cid}/report.pdf", headers={**customer, "Accept-Language": language})
+        assert pdf.status_code == 200
+        doc = fitz.open(stream=pdf.content, filetype="pdf")
+        text = "".join(page.get_text() for page in doc)
+        assert doc.page_count >= 2 and (needle in text or needle[::-1] in text or language == "ar")
+
+
+def test_template_upgrade_adds_new_sections_without_touching_edited_ones(db):
+    from app.modules.consultations import service as consultations
+    from app.modules.consultations.models import ReportTemplate
+
+    consultations.seed(db)
+    template = db.query(ReportTemplate).filter_by(key="expert_color.standard").one()
+    edited = [s for s in template.sections if s["key"] != "colour_type"]
+    edited[0] = {**edited[0], "title": {"en": "Season (edited)", "ar": "الموسم"}}
+    template.sections = edited
+    db.flush()
+    consultations.seed(db)
+    keys = [s["key"] for s in template.sections]
+    assert keys.index("colour_type") == keys.index("season") + 1
+    assert template.sections[0]["title"]["en"] == "Season (edited)"
 
 
 # ---------- rewards (43, 44) ----------

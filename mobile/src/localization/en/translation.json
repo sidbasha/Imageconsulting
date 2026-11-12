@@ -596,8 +596,23 @@
       "gold": "Gold",
       "silver": "Silver",
       "rose_gold": "Rose gold",
-      "mixed": "Mixed"
-    }
+      "mixed": "Mixed",
+      "light_spring": "Light Spring",
+      "warm_spring": "Warm Spring",
+      "bright_spring": "Bright Spring",
+      "light_summer": "Light Summer",
+      "cool_summer": "Cool Summer",
+      "soft_summer": "Soft Summer",
+      "soft_autumn": "Soft Autumn",
+      "warm_autumn": "Warm Autumn",
+      "deep_autumn": "Deep Autumn",
+      "deep_winter": "Deep Winter",
+      "cool_winter": "Cool Winter",
+      "bright_winter": "Bright Winter"
+    },
+    "fromDraping": "Fill from guided draping",
+    "fromDrapingNote": "Fills colour type, season, temperature, contrast, palette, metals, makeup, hair and clothing. Your explanation and recommendations stay as you write them.",
+    "filled": "Colour fields filled. Review them, then save."
   },
   "workspace": {
     "title": "Colour workspace",
