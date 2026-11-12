@@ -101,36 +101,43 @@ class _Models:
         self._face = self._pose = self._seg = None
         self._locks = {"face": threading.Lock(), "pose": threading.Lock(), "seg": threading.Lock()}
 
-    def _load(self):
-        if self._seg is not None:
+    def _load(self, which: str):
+        """Loads one model on first use. Each is loaded only when needed, so a server that only
+        drapes or reads faces never holds the body-pose model (memory matters on small hosts)."""
+        attr = {"face": "_face", "pose": "_pose", "seg": "_seg"}[which]
+        if getattr(self, attr) is not None:
             return
         with self._lock:
-            if self._seg is not None:
+            if getattr(self, attr) is not None:
                 return
             if not models_available():
                 raise ModelsMissing("vision models not installed; run `python -m app.cli fetch-models`")
             from mediapipe.tasks.python import BaseOptions, vision
 
-            self._face = vision.FaceLandmarker.create_from_options(
-                vision.FaceLandmarkerOptions(
-                    base_options=BaseOptions(model_asset_path=str(model_path("face_landmarker"))),
-                    num_faces=2,
-                    output_facial_transformation_matrixes=True,
+            if which == "face":
+                model = vision.FaceLandmarker.create_from_options(
+                    vision.FaceLandmarkerOptions(
+                        base_options=BaseOptions(model_asset_path=str(model_path("face_landmarker"))),
+                        num_faces=2,
+                        output_facial_transformation_matrixes=True,
+                    )
                 )
-            )
-            self._pose = vision.PoseLandmarker.create_from_options(
-                vision.PoseLandmarkerOptions(
-                    base_options=BaseOptions(model_asset_path=str(model_path("pose_landmarker"))),
-                    num_poses=2,
-                    output_segmentation_masks=True,
+            elif which == "pose":
+                model = vision.PoseLandmarker.create_from_options(
+                    vision.PoseLandmarkerOptions(
+                        base_options=BaseOptions(model_asset_path=str(model_path("pose_landmarker"))),
+                        num_poses=2,
+                        output_segmentation_masks=True,
+                    )
                 )
-            )
-            self._seg = vision.ImageSegmenter.create_from_options(
-                vision.ImageSegmenterOptions(
-                    base_options=BaseOptions(model_asset_path=str(model_path("segmenter"))),
-                    output_category_mask=True,
+            else:
+                model = vision.ImageSegmenter.create_from_options(
+                    vision.ImageSegmenterOptions(
+                        base_options=BaseOptions(model_asset_path=str(model_path("segmenter"))),
+                        output_category_mask=True,
+                    )
                 )
-            )
+            setattr(self, attr, model)
 
     @staticmethod
     def _mp(rgb: np.ndarray):
@@ -139,7 +146,7 @@ class _Models:
         return mp.Image(image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(rgb))
 
     def faces(self, rgb: np.ndarray) -> list[Face]:
-        self._load()
+        self._load("face")
         h, w = rgb.shape[:2]
         with self._locks["face"]:
             result = self._face.detect(self._mp(rgb))
@@ -151,7 +158,7 @@ class _Models:
         return faces
 
     def poses(self, rgb: np.ndarray) -> list[Pose]:
-        self._load()
+        self._load("pose")
         h, w = rgb.shape[:2]
         with self._locks["pose"]:
             result = self._pose.detect(self._mp(rgb))
@@ -167,7 +174,7 @@ class _Models:
 
     def segment(self, rgb: np.ndarray) -> np.ndarray:
         """Per-pixel class (see the constants above), at the photo's own size."""
-        self._load()
+        self._load("seg")
         with self._locks["seg"]:
             result = self._seg.segment(self._mp(rgb))
         mask = result.category_mask.numpy_view().copy()

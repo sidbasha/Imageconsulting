@@ -1,6 +1,9 @@
 FROM python:3.13-slim
 WORKDIR /srv
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+# Small hosts (Render free: 512 MB): fewer malloc arenas and one thread pool per native library
+# keep the vision models' memory steady instead of growing with every request thread.
+ENV MALLOC_ARENA_MAX=2 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
 # Shared libraries needed even on a headless server: OpenCV wants libGL and GLib;
 # MediaPipe's libmediapipe.so links libEGL and libGLESv2 (it fails to load without them).
 RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 libegl1 libgles2 \
