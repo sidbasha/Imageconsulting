@@ -19,6 +19,7 @@ def _user_out(user: User) -> UserOut:
         full_name=user.full_name,
         preferred_language=user.preferred_language,
         role=user.role.key,
+        permissions=sorted(p.key for p in user.role.permissions),
     )
 
 

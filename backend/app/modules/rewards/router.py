@@ -74,6 +74,11 @@ def patch_rule(event: str, body: RulePatch, _: User = Depends(require_permission
     return {"event": rule.event, "points": rule.points, "is_active": rule.is_active}
 
 
+@admin.get("/options")
+def options_admin(_: User = Depends(require_permission("rewards.manage")), db: Session = Depends(get_db)) -> list[dict]:
+    return [{"key": o.key, "title": o.title, "points_cost": o.points_cost, "is_active": o.is_active} for o in db.scalars(select(RedemptionOption))]
+
+
 class OptionPatch(BaseModel):
     points_cost: int | None = Field(default=None, ge=1)
     is_active: bool | None = None

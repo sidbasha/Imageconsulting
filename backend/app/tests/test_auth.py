@@ -96,3 +96,15 @@ def test_every_error_code_has_an_english_and_arabic_message():
     for language in ("en", "ar"):
         messages = json.loads((root / "localization" / f"{language}.json").read_text(encoding="utf-8"))
         assert not sorted(codes - messages.keys()), language
+
+
+def test_profile_lists_permissions_and_cors_allows_the_admin_panel(client, owner):
+    me = client.get("/api/v1/users/me", headers=owner).json()
+    assert "release.manage" in me["permissions"] and "orders.manage" in me["permissions"]
+    customer = client.post("/api/v1/auth/login", json={"email": "customer@example.com", "password": "correct-horse-battery"}).json()
+    assert client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {customer['access_token']}"}).json()["permissions"] == []
+    preflight = client.options("/api/v1/users/me", headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "GET",
+                                                            "Access-Control-Request-Headers": "authorization"})
+    assert preflight.headers["access-control-allow-origin"] == "http://localhost:5173"
+    other = client.options("/api/v1/users/me", headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"})
+    assert "access-control-allow-origin" not in other.headers

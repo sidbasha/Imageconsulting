@@ -41,6 +41,8 @@ class UserOut(BaseModel):
     full_name: str
     preferred_language: str
     role: str
+    # What this user may do; the admin panel shows only the matching sections.
+    permissions: list[str] = []
 
 
 class UserUpdateIn(BaseModel):

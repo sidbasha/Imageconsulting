@@ -1,6 +1,6 @@
 # Development status
 
-Last updated: 12 Nov 2026, after the photo analysis and all-phases build.
+Last updated: 12 Nov 2026, after try-on, stylist tools, location and the admin panel.
 
 The product described in the master prompt is a multi-month build for a team. This file is
 the honest ledger: nothing is listed as complete unless it exists and its tests pass.
@@ -15,12 +15,21 @@ the honest ledger: nothing is listed as complete unless it exists and its tests 
 | 3 | Assessments and photo upload | Done with DRAFT content |
 | 4 | AI analysis | Done as indicative photo analysis (face, body, colour) on on-device models. Accuracy unmeasured. Celery workers not wired |
 | 5 | Recommendations, reports, guides, entitlements, subscriptions, payments, retail links, loyalty | Done against a SANDBOX payment gateway. Real gateway not chosen |
-| 6 | Mobile app for Phase 1 and admin panel | Mobile done for customers. Admin panel (web) NOT started; every admin function exists as an API only |
+| 6 | Mobile app for Phase 1 and admin panel | Done: mobile for customers and stylists; web admin panel for every admin function and release control |
 | 7 | Phase 2 marketplace | Done (backend and customer screens). Stylist screens partial |
 | 8 | Phase 2 safeguards and tools | Done. Product recognition and video calls have no provider |
-| 9 | Mobile and admin screens for Phase 2 | Customer screens done; stylist report editor, workspace and availability screens not built; admin not started |
-| 10 | Phase 3 | Done in backend; mobile done except location search (needs a geolocation library) |
+| 9 | Mobile and admin screens for Phase 2 | Done |
+| 10 | Phase 3 | Done (location uses a newly added native library, not yet run on a device) |
 | 11 | Hardening | Not started |
+
+## Try-on, stylist tools, location and admin panel (12 Nov 2026)
+
+**Tests**: backend 118, mobile 44, admin 7, all passing; migration 0005 round-trips.
+
+- Garment and hairstyle try-on by transfer from approved reference photos (backend, admin library, mobile picker).
+- Mobile stylist tools: services and availability, report editor, colour workspace, featured placement.
+- Location: approximate position on request for "near me" stylists and offers.
+- Web admin panel for every admin function (rows 53-60) and release control, English and Arabic, sections by permission. CORS is configured by `IC_CORS_ORIGINS`.
 
 ## Photo analysis and all-phases report (12 Nov 2026)
 
@@ -37,7 +46,7 @@ the honest ledger: nothing is listed as complete unless it exists and its tests 
 
 **Important caveats**
 - The classification constants are DRAFTS calibrated by eye on about a dozen public photos. **Accuracy has not been measured.** That needs photos labelled by the client's consultants (row 64). All constants are in one table per analyser for recalibration.
-- "Virtual outfit try-on" (row 11) is built as a **colour** try-on on the user's own clothes. Putting a different garment on the photo needs a generative try-on model or vendor; not built. Same for a new haircut (row 12): colour only.
+- Try-on (rows 11, 12) works by **transfer**: an admin uploads a photo of a model wearing a garment or with a hairstyle; it is cut out, approved, and fitted onto the user's photo by body or face landmarks. It is not generative: a garment keeps the drape of the reference photo and her own clothes are not removed; a shorter hairstyle fills the uncovered area smoothly from the background and skin, which looks soft. A generative service would look more natural but means sending user photos to a third party (row 65). No garments or hairstyles are seeded: the client must supply photos it has the rights to.
 - Analysis runs inside the request (about a second on CPU). Celery workers are still not wired.
 
 ### Feature rows
@@ -56,8 +65,8 @@ Status: Built = works end to end with tests; Partial = see note; API = backend o
 | 8 | Body-shape analysis | Built | Photo and questionnaire; strict pose requirements |
 | 9 | Preliminary seasonal color | Built | Photo and questionnaire; indicative |
 | 10 | Outfit recommendations | Built | Rule-based, draft advice |
-| 11 | Virtual outfit try-on | Partial | Colour try-on only (see caveats) |
-| 12 | Hair makeover preview | Partial | Hair colour on photo plus hairstyle advice; no new cut |
+| 11 | Virtual outfit try-on | Built | Garments transferred from approved reference photos onto her photo, plus colour try-on. Not generative (see below) |
+| 12 | Hair makeover preview | Built | Cut and style transferred from reference photos, any colour; plus advice. Not generative |
 | 13 | Eyewear recommendations | Built | |
 | 14 | Permanent-makeup preview | Built | Lip and brow tint |
 | 15 | Stylist onboarding | Built | |
@@ -70,10 +79,10 @@ Status: Built = works end to end with tests; Partial = see note; API = backend o
 | 22 | Wardrobe audit | Built | |
 | 23 | Makeup audit | Built | Requires a seasonal colour result (Excel note) |
 | 24 | Expert color analysis | Built | Report template has temperature, contrast, palette, makeup, hair, clothing, metals |
-| 25 | Standardized expert reports | Partial | Templates, validation, PDF in EN/AR. Stylists write reports through the API: no mobile editor yet |
+| 25 | Standardized expert reports | Built | Templates (admin-editable), mobile report editor, validation, PDF in EN/AR |
 | 26 | Product recognition from photos | Not built | Endpoint says "integration not configured": needs a recognition service and product database |
-| 27 | Consultant colour workspace | API | Backend built and tested; no stylist screen |
-| 28 | Digital color draping | API | As 27 |
+| 27 | Consultant colour workspace | Built | Stylist screen with credits, drapes, comparison, automated reading |
+| 28 | Digital color draping | Built | |
 | 29 | Metered tool access | Built | Credits per client, bought as a product |
 | 30 | In-app messaging | Built | Only after a booking |
 | 31 | Contact-sharing detection | Built | Phones, emails, IBAN/cards, links, social handles, incl. Arabic digits and spelled-out numbers. Rule-based; will not catch everything |
@@ -87,18 +96,18 @@ Status: Built = works end to end with tests; Partial = see note; API = backend o
 | 39 | Complimentary digital resources | Built | |
 | 40 | Consultant subscriptions | Built | Annual membership required to offer services |
 | 41 | In-app service payments | Partial | Through the sandbox gateway only |
-| 42 | Paid consultant promotion | API | Purchase, admin approval and ranking boost built; no stylist screen to buy it |
+| 42 | Paid consultant promotion | Built | Stylist buys, admin approves, ranking boost |
 | 43 | Loyalty points | Built | Draft rules |
 | 44 | Reward redemption | Built | Free consultation credit |
 | 45 | Testimonials and recognition | Built | Moderation by admin |
 | 46 | In-person personal shopper | Built | |
-| 47 | Location-based discovery | Partial | Backend built; mobile searches by city because device location needs a geolocation library |
+| 47 | Location-based discovery | Built | Approximate device position on request; not yet run on a device |
 | 48 | Physical product catalog | Built | Fulfilment status set by admin; no courier integration |
 | 49 | Brand advertising | Built | Campaigns entered by admin |
-| 50 | Location-targeted promotions | Partial | Backend built; the app does not send a location yet (as 47) |
+| 50 | Location-targeted promotions | Built | As 47 |
 | 51 | Vouchers and offers | Built | |
 | 52 | International expansion | Partial | Markets switchable; no currency conversion, local payment or local content |
-| 53-60 | Supporting administration | API | Every function exists as an admin API with role permissions. **The admin web panel is not started.** |
+| 53-60 | Supporting administration | Built | Web admin panel (`admin/`), sections by role permission |
 
 ### Integrations that are sandboxes or missing (need client decisions or accounts)
 
@@ -109,7 +118,7 @@ Status: Built = works end to end with tests; Partial = see note; API = backend o
 
 ### Not verified
 
-- Native Android and iOS builds are still uncompiled on a device. No new native library was added in this build (PDFs open in the browser through signed links; previews use base64), so the native surface is unchanged.
+- Native Android and iOS builds are still uncompiled on a device. One native library was added: `@react-native-community/geolocation` (coarse location permission on Android, usage text on iOS). iOS needs `pod install`.
 - Arabic text (app, API messages, PDFs) is still unreviewed by a native speaker. PDF Arabic shaping and right-to-left layout were checked by rendering.
 - The Docker image was changed (system libraries for OpenCV, model download) but not built here.
 - The RTM spreadsheet was not regenerated: `docs/build_rtm.py` needs the client's workbook, which is not on this machine. Its planned API column predates this build.

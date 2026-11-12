@@ -1,4 +1,5 @@
 from fastapi import APIRouter, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.errors import AppError, app_error_handler
 from app.modules.ai_analysis.router import admin_tryon, catalogue as tryon_catalogue, previews_router
@@ -21,6 +22,11 @@ from app.config.settings import get_settings
 def create_app() -> FastAPI:
     app = FastAPI(title="Image Consulting API", version="0.1.0")
     app.add_exception_handler(AppError, app_error_handler)
+    origins = [o.strip() for o in get_settings().cors_origins.split(",") if o.strip()]
+    if origins:
+        # Bearer tokens, not cookies: no credentials mode needed.
+        app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"],
+                           allow_headers=["Authorization", "Content-Type", "Accept-Language", "X-Release-Preview"])
 
     v1 = APIRouter(prefix="/api/v1")
     v1.include_router(auth_router)

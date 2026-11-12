@@ -396,12 +396,23 @@ def patch_plan(key: str, body: PlanPatch, _: User = Depends(require_permission("
     return {"key": plan.key, **changes}
 
 
-@admin.get("/orders", response_model=list[OrderOut])
+class AdminOrderOut(OrderOut):
+    user_id: uuid.UUID
+    shipping: dict | None
+
+
+@admin.get("/orders", response_model=list[AdminOrderOut])
 def admin_orders(status_filter: str | None = None, _: User = Depends(require_permission("orders.manage")), db: Session = Depends(get_db)):
     query = select(Order).order_by(Order.created_at.desc()).limit(200)
     if status_filter:
         query = query.where(Order.status == status_filter)
     return list(db.scalars(query))
+
+
+@admin.get("/plans")
+def admin_plans(_: User = Depends(require_permission("pricing.manage")), db: Session = Depends(get_db)) -> list[dict]:
+    return [{"key": p.key, "audience": p.audience, "title": p.title, "price_minor": p.price_minor, "currency": p.currency,
+             "interval": p.interval, "grants": p.grants, "is_active": p.is_active} for p in db.scalars(select(Plan).order_by(Plan.sort_order))]
 
 
 class FulfilmentIn(BaseModel):

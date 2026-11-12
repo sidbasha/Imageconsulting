@@ -332,6 +332,14 @@ class TestimonialPatch(BaseModel):
     status: str = Field(pattern="^(published|hidden)$")
 
 
+@admin.get("/testimonials")
+def testimonials(_: User = Depends(require_permission("moderation.manage")), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.execute(select(Testimonial, StylistProfile).join(StylistProfile, StylistProfile.id == Testimonial.profile_id)
+                      .order_by(Testimonial.created_at.desc()).limit(200)).all()
+    return [{"id": t.id, "stylist": p.display_name, "rating": t.rating, "text": t.text, "status": t.status, "created_at": t.created_at}
+            for t, p in rows]
+
+
 @admin.patch("/testimonials/{testimonial_id}")
 def moderate_testimonial(testimonial_id: uuid.UUID, body: TestimonialPatch, _: User = Depends(require_permission("moderation.manage")),
                          db: Session = Depends(get_db)) -> dict:
