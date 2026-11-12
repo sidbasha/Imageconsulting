@@ -30,6 +30,42 @@ export type EnabledFeatures = {
   features: string[];
 };
 
+export type Questionnaire = {
+  key: string;
+  title: string;
+  intro: string;
+  questions: { key: string; prompt: string; options: { key: string; label: string }[] }[];
+};
+
+export type AssessmentResult = {
+  questionnaire: string;
+  title: string;
+  completed_at: string;
+  basis: 'self_assessment';
+  profile: {
+    key: string;
+    title: string;
+    summary: string;
+    palette: string[] | null;
+    advice: Record<string, string[]>;
+  } | null;
+  answers: { question: string; answer: string }[];
+};
+
+export type RecommendationCategory = 'outfits' | 'eyewear' | 'hair';
+
+export type Recommendations = {
+  category: RecommendationCategory;
+  sections: { source: string; source_title: string; result: string; palette: string[] | null; items: string[] }[];
+  /** Assessments the user has not completed yet that would add advice here. */
+  missing: { key: string; title: string }[];
+};
+
+export type Photo = { id: string; kind: PhotoKind; width: number; height: number; size_bytes: number; created_at: string };
+export type PhotoKind = 'face' | 'full_body';
+/** A file picked on the device (React Native form part), or a Blob when running under Node. */
+export type PhotoFile = { uri: string; name: string; type: string } | Blob;
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -79,8 +115,9 @@ export function createApiClient(options: Options) {
       Accept: 'application/json',
       'Accept-Language': getLanguage(),
     };
-    if (body !== undefined) {
-      headers['Content-Type'] = 'application/json';
+    const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+    if (body !== undefined && !isForm) {
+      headers['Content-Type'] = 'application/json'; // for a form, fetch sets the multipart boundary itself
     }
     if (accessToken) {
       headers.Authorization = `Bearer ${accessToken}`;
@@ -89,7 +126,7 @@ export function createApiClient(options: Options) {
       return await doFetch(`${baseUrl}/api/v1${path}`, {
         method,
         headers,
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
       });
     } catch {
       throw new ApiError(0, 'network_error', 'Network request failed');
@@ -193,6 +230,34 @@ export function createApiClient(options: Options) {
 
     updateMe: (changes: { full_name?: string; preferred_language?: Language }) =>
       request<User>('PATCH', '/users/me', { body: changes }),
+
+    questionnaire: (key: string) => request<Questionnaire>('GET', `/assessments/${key}`),
+
+    submitAnswers: (key: string, answers: Record<string, string>) =>
+      request<AssessmentResult>('POST', `/assessments/${key}/responses`, { body: { answers } }),
+
+    /** The latest result, or null if the assessment has not been completed. */
+    latestResult: (key: string) => request<AssessmentResult | null>('GET', `/assessments/${key}/result`),
+
+    recommendations: (category: RecommendationCategory) =>
+      request<Recommendations>('GET', `/recommendations/${category}`),
+
+    /** `consent` must be the user's explicit agreement, given on screen, to process this photo. */
+    uploadPhoto(file: PhotoFile, kind: PhotoKind, consent: boolean) {
+      const form = new FormData();
+      if (typeof Blob !== 'undefined' && file instanceof Blob) {
+        (form as any).append('file', file, 'photo.jpg'); // Node/web signature; React Native's typings omit the file name
+      } else {
+        form.append('file', file as any);
+      }
+      form.append('kind', kind);
+      form.append('consent', String(consent));
+      return request<Photo>('POST', '/assessment-images', { body: form });
+    },
+
+    photos: () => request<Photo[]>('GET', '/assessment-images'),
+
+    deletePhoto: (id: string) => request<void>('DELETE', `/assessment-images/${id}`),
 
     /** Enabled phases and features for the active release. Drives navigation. */
     enabledFeatures: () => request<EnabledFeatures>('GET', '/config/features'),

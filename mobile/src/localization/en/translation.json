@@ -1,5 +1,7 @@
 {
-  "app": { "name": "Image Consulting" },
+  "app": {
+    "name": "Image Consulting"
+  },
   "common": {
     "loading": "Loading",
     "retry": "Try again",
@@ -66,7 +68,7 @@
     "seasonalColor": "Seasonal colour palette",
     "outfits": "Outfit recommendations",
     "tryOn": "Virtual outfit try-on",
-    "hair": "Hair makeover preview",
+    "hair": "Hairstyle recommendations",
     "eyewear": "Eyewear recommendations",
     "shopping": "Shop the look",
     "makeupPreview": "Brow and lip preview",
@@ -88,5 +90,58 @@
     "subscription": "Membership",
     "rewards": "Reward points",
     "redeem": "Redeem points"
+  },
+  "assessment": {
+    "start": "Start",
+    "next": "Next",
+    "previous": "Previous",
+    "finish": "See my result",
+    "retake": "Retake",
+    "progress": "Question {{current}} of {{total}}",
+    "selfAssessed": "Based on your own answers. This is not an expert assessment.",
+    "saved": "Your answers are saved.",
+    "yourAnswers": "Your answers",
+    "palette": "Your palette",
+    "advice": {
+      "outfits": "Outfit advice",
+      "eyewear": "Eyewear advice",
+      "hair": "Hair advice"
+    }
+  },
+  "recommendations": {
+    "title": {
+      "outfits": "Outfit recommendations",
+      "eyewear": "Eyewear recommendations",
+      "hair": "Hairstyle recommendations"
+    },
+    "empty": "Complete an assessment to get your recommendations.",
+    "missing": "Complete these for more advice",
+    "basedOn": "{{source}}: {{result}}"
+  },
+  "photos": {
+    "title": "My photos",
+    "intro": "Add a clear, front-facing photo taken in daylight.",
+    "kind": {
+      "face": "Face",
+      "full_body": "Full body"
+    },
+    "consent": "I agree to my photo being stored and processed to assess my style.",
+    "consentRequired": "Please agree before adding a photo.",
+    "choose": "Choose from library",
+    "take": "Take a photo",
+    "uploaded": "Photo added.",
+    "none": "No photos yet.",
+    "delete": "Delete",
+    "note": "Automatic photo analysis is not available yet. Your photos are kept privately for your assessment.",
+    "rejected": "This photo cannot be used:",
+    "reasons": {
+      "not_an_image": "The file is not a photo.",
+      "too_small": "The photo is too small. Use a higher resolution.",
+      "too_blurry": "The photo is blurry. Hold the phone steady.",
+      "too_dark": "The photo is too dark. Move to better light.",
+      "too_bright": "The photo is too bright. Avoid direct light.",
+      "no_face": "No face was found. Face the camera directly.",
+      "face_too_small": "Your face is too far away. Move closer."
+    }
   }
 }

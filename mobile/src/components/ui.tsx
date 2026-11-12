@@ -111,6 +111,50 @@ export function TextField({ label, error, hint, style, ...rest }: FieldProps) {
   );
 }
 
+/** Title row with a back control that sits on, and points to, the reading-start side. */
+export function ScreenHeader({ title, onBack }: { title: string; onBack: () => void }) {
+  const { rtl } = useDirection();
+  const { t } = useTranslation();
+  return (
+    <View style={styles.header}>
+      <Row>
+        <Button kind="link" label={`${rtl ? '›' : '‹'} ${t('common.back')}`} onPress={onBack} testID="back" />
+      </Row>
+      <AppText variant="title" accessibilityRole="header">
+        {title}
+      </AppText>
+    </View>
+  );
+}
+
+export function Card({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  return <View style={[styles.card, style]}>{children}</View>;
+}
+
+/** A list of short advice lines with a leading mark on the reading-start side. */
+export function Bullets({ items }: { items: string[] }) {
+  return (
+    <View style={styles.bullets}>
+      {items.map(item => (
+        <Row key={item} style={styles.bullet}>
+          <AppText muted>•</AppText>
+          <AppText style={styles.flex}>{item}</AppText>
+        </Row>
+      ))}
+    </View>
+  );
+}
+
+export function Palette({ colors: swatches }: { colors: string[] }) {
+  return (
+    <Row style={styles.palette}>
+      {swatches.map(hex => (
+        <View key={hex} style={[styles.swatch, { backgroundColor: hex }]} accessibilityLabel={hex} testID={`swatch-${hex}`} />
+      ))}
+    </Row>
+  );
+}
+
 export function ErrorBanner({ message }: { message: string | null }) {
   if (!message) {
     return null;
@@ -151,6 +195,20 @@ export function LanguageSwitch() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
+  header: { gap: spacing.xs },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  bullets: { gap: spacing.xs },
+  bullet: { gap: spacing.sm, alignItems: 'flex-start' },
+  palette: { gap: spacing.sm, flexWrap: 'wrap' },
+  swatch: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
   row: { alignItems: 'center' },
   button: {
     backgroundColor: colors.primary,

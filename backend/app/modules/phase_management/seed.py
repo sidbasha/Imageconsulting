@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.modules.assessments.service import seed_content
 from app.modules.auth.models import Permission, Role
 from app.modules.phase_management import catalog, service
 from app.modules.phase_management.models import (
@@ -84,3 +85,4 @@ def seed(db: Session) -> None:
         release = ReleaseConfiguration(note="Initial release: Phase 1 only", changes=None)
         service._activate(db, release, snapshot, None, None, "seeded", datetime.now(UTC))
     db.flush()
+    seed_content(db)

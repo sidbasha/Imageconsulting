@@ -5,14 +5,24 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
 import { AppText, Button, Screen } from '../components/ui';
+import type { RecommendationCategory } from '../api/client';
 import { useApp } from '../contexts/AppContext';
+import { AssessmentScreen } from '../screens/AssessmentScreen';
+import { PhotosScreen } from '../screens/PhotosScreen';
+import { RecommendationsScreen } from '../screens/RecommendationsScreen';
 import { LoginScreen, RegisterScreen } from '../screens/AuthScreens';
 import { HomeScreen } from '../screens/HomeScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { colors, spacing } from '../theme';
 
 export type AuthStackParams = { Login: undefined; Register: undefined };
-export type AppStackParams = { Home: undefined; Settings: undefined };
+export type AppStackParams = {
+  Home: undefined;
+  Settings: undefined;
+  Assessment: { key: string };
+  Recommendations: { category: RecommendationCategory };
+  Photos: undefined;
+};
 
 const AuthStack = createNativeStackNavigator<AuthStackParams>();
 const AppStack = createNativeStackNavigator<AppStackParams>();
@@ -50,6 +60,9 @@ export function RootNavigator() {
         <AppStack.Navigator screenOptions={{ ...screenOptions, animation }}>
           <AppStack.Screen name="Home" component={HomeScreen} />
           <AppStack.Screen name="Settings" component={SettingsScreen} />
+          <AppStack.Screen name="Assessment" component={AssessmentScreen} />
+          <AppStack.Screen name="Recommendations" component={RecommendationsScreen} />
+          <AppStack.Screen name="Photos" component={PhotosScreen} />
         </AppStack.Navigator>
       ) : (
         <AuthStack.Navigator screenOptions={{ ...screenOptions, animation }}>

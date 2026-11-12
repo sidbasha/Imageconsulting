@@ -6,6 +6,8 @@
  * E2E_ADMIN_PASSWORD. `scripts/e2e.sh` at the repository root sets all of
  * this up and runs the test.
  */
+import fs from 'fs';
+
 import { createApiClient, type Language, type Tokens, type TokenStore } from '../src/api/client';
 import { visibleSections } from '../src/navigation/registry';
 
@@ -127,6 +129,67 @@ describe('mobile app against the live API', () => {
       headers: { Authorization: `Bearer ${tokens.accessToken}` },
     });
     expect(response.status).toBe(403);
+  });
+
+  test('take the style assessment in Arabic and get advice from it', async () => {
+    phone.state.language = 'ar';
+    const questionnaire = await phone.api.questionnaire('style');
+    expect(questionnaire.title).toBe('تقييم الأسلوب الشخصي');
+    expect(questionnaire.questions.map(q => q.key)).toEqual(['line', 'shape', 'colour', 'texture', 'pattern']);
+    expect(await phone.api.latestResult('style')).toBeNull();
+
+    // Pick the third option everywhere: the "romantic" answers.
+    const answers = Object.fromEntries(questionnaire.questions.map(q => [q.key, q.options[2].key]));
+    const result = await phone.api.submitAnswers('style', answers);
+    expect(result.profile).toMatchObject({ key: 'romantic', title: 'رومانسي' });
+    expect(result.profile!.advice.outfits).toHaveLength(3);
+    expect((await phone.api.latestResult('style'))!.profile!.key).toBe('romantic');
+
+    const outfits = await phone.api.recommendations('outfits');
+    expect(outfits.sections.map(s => s.source)).toEqual(['style']);
+    expect(outfits.missing.map(m => m.key)).toEqual(['body_shape', 'seasonal_color']);
+
+    phone.state.language = 'en';
+    expect((await phone.api.latestResult('style'))!.profile!.title).toBe('Romantic');
+    const incomplete = await phone.api.submitAnswers('style', { line: 'curved' }).catch(e => e);
+    expect(incomplete).toMatchObject({ status: 422, code: 'invalid_answers' });
+  });
+
+  test('colour self-assessment returns a palette', async () => {
+    const result = await phone.api.submitAnswers('seasonal_color', {
+      jewellery: 'silver', veins: 'blue', depth: 'deep', clarity: 'bright',
+    });
+    expect(result.profile!.key).toBe('winter');
+    expect(result.profile!.palette).toHaveLength(6);
+  });
+
+  test('a good photo is accepted, a blurry one is refused with reasons, and photos can be deleted', async () => {
+    const photo = (name: string) => new Blob([new Uint8Array(fs.readFileSync(`${process.env.E2E_PHOTO_DIR}/${name}`)) as any], { type: 'image/jpeg' } as any);
+
+    const refused = await phone.api.uploadPhoto(photo('good.jpg'), 'face', false).catch(e => e);
+    expect(refused).toMatchObject({ status: 422, code: 'consent_required' });
+
+    const blurry = await phone.api.uploadPhoto(photo('blurry.jpg'), 'face', true).catch(e => e);
+    expect(blurry).toMatchObject({ status: 422, code: 'photo_rejected' });
+    expect(blurry.detail.reasons).toEqual(['too_blurry']);
+
+    const saved = await phone.api.uploadPhoto(photo('good.jpg'), 'face', true);
+    expect(saved).toMatchObject({ kind: 'face', width: 600, height: 600 });
+    expect((await phone.api.photos()).map(p => p.id)).toEqual([saved.id]);
+
+    await phone.api.deletePhoto(saved.id);
+    expect(await phone.api.photos()).toEqual([]);
+  });
+
+  test('switching one feature off blocks it for the app and keeps the result for later', async () => {
+    const off = await admin('POST', '/releases', { features: { 'phase1.style_assessment': false, 'phase1.outfit_recommendations': false, 'phase1.virtual_tryon': false }, note: 'e2e: style off' });
+    expect(off.status).toBe(201);
+    expect(await phone.api.questionnaire('style').catch(e => e)).toMatchObject({ status: 404, code: 'feature_not_available' });
+    expect((await phone.api.enabledFeatures()).features).not.toContain('phase1.style_assessment');
+
+    const back = await admin('POST', `/releases/${launchReleaseId}/rollback`, { note: 'e2e: style back on' });
+    expect(back.status).toBe(201);
+    expect((await phone.api.latestResult('style'))!.profile!.key).toBe('romantic');
   });
 
   test('sign out ends the session on the server as well', async () => {

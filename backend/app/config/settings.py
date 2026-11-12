@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 15
     refresh_token_days: int = 30
+    storage_dir: str = "./var/uploads"  # local private storage; S3-compatible backend planned
     default_language: str = "en"
     supported_languages: tuple[str, ...] = ("en", "ar")
 

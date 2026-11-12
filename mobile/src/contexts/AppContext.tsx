@@ -9,6 +9,7 @@ import { loadChosenLanguage, saveChosenLanguage } from '../storage/secureStore';
 type Status = 'starting' | 'unreachable' | 'signedOut' | 'signedIn';
 
 type AppState_ = {
+  api: ApiClient;
   status: Status;
   user: User | null;
   language: Language;
@@ -154,6 +155,7 @@ export function AppProvider({ children, api = defaultApi }: { children: React.Re
 
   const value = useMemo<AppState_>(
     () => ({
+      api,
       status,
       user,
       language,

@@ -6,27 +6,32 @@
  * new build. Feature keys match backend/app/modules/phase_management/catalog.py
  * (a test fails if one does not exist there).
  *
- * `screen` is the route to open. It is undefined until that feature's screens
+ * `target` is the screen to open. It is undefined until that feature's screens
  * are built; such entries render as "In development" and cannot be opened.
  */
 export type Group = 'assessment' | 'recommendations' | 'experts' | 'library' | 'shop' | 'account';
 
-export type Entry = { id: string; feature: string; group: Group; screen?: string };
+export type Target =
+  | { screen: 'Assessment'; params: { key: string } }
+  | { screen: 'Recommendations'; params: { category: 'outfits' | 'eyewear' | 'hair' } }
+  | { screen: 'Photos'; params?: undefined };
+
+export type Entry = { id: string; feature: string; group: Group; target?: Target };
 
 export const GROUP_ORDER: Group[] = ['assessment', 'recommendations', 'experts', 'library', 'shop', 'account'];
 
 export const ENTRIES: Entry[] = [
-  { id: 'onboardingQuiz', feature: 'phase1.onboarding_quiz', group: 'assessment' },
-  { id: 'styleAssessment', feature: 'phase1.style_assessment', group: 'assessment' },
-  { id: 'photoAssessment', feature: 'phase1.photo_assessment', group: 'assessment' },
-  { id: 'faceShape', feature: 'phase1.face_shape', group: 'assessment' },
-  { id: 'bodyShape', feature: 'phase1.body_shape', group: 'assessment' },
-  { id: 'seasonalColor', feature: 'phase1.seasonal_color', group: 'assessment' },
+  { id: 'onboardingQuiz', feature: 'phase1.onboarding_quiz', group: 'assessment', target: { screen: 'Assessment', params: { key: 'onboarding_quiz' } } },
+  { id: 'styleAssessment', feature: 'phase1.style_assessment', group: 'assessment', target: { screen: 'Assessment', params: { key: 'style' } } },
+  { id: 'photoAssessment', feature: 'phase1.photo_assessment', group: 'assessment', target: { screen: 'Photos' } },
+  { id: 'faceShape', feature: 'phase1.face_shape', group: 'assessment', target: { screen: 'Assessment', params: { key: 'face_shape' } } },
+  { id: 'bodyShape', feature: 'phase1.body_shape', group: 'assessment', target: { screen: 'Assessment', params: { key: 'body_shape' } } },
+  { id: 'seasonalColor', feature: 'phase1.seasonal_color', group: 'assessment', target: { screen: 'Assessment', params: { key: 'seasonal_color' } } },
 
-  { id: 'outfits', feature: 'phase1.outfit_recommendations', group: 'recommendations' },
+  { id: 'outfits', feature: 'phase1.outfit_recommendations', group: 'recommendations', target: { screen: 'Recommendations', params: { category: 'outfits' } } },
   { id: 'tryOn', feature: 'phase1.virtual_tryon', group: 'recommendations' },
-  { id: 'hair', feature: 'phase1.hair_preview', group: 'recommendations' },
-  { id: 'eyewear', feature: 'phase1.eyewear', group: 'recommendations' },
+  { id: 'hair', feature: 'phase1.hair_preview', group: 'recommendations', target: { screen: 'Recommendations', params: { category: 'hair' } } },
+  { id: 'eyewear', feature: 'phase1.eyewear', group: 'recommendations', target: { screen: 'Recommendations', params: { category: 'eyewear' } } },
   { id: 'shopping', feature: 'phase1.retail_links', group: 'recommendations' },
   { id: 'makeupPreview', feature: 'phase3.pmu_preview', group: 'recommendations' },
 

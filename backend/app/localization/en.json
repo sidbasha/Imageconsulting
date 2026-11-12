@@ -12,5 +12,11 @@
   "no_changes": "The release would not change anything.",
   "invalid_schedule": "The activation time must be in the future.",
   "release_not_scheduled": "Only a scheduled release can be cancelled.",
-  "release_not_restorable": "This release was never active, so it cannot be restored."
+  "release_not_restorable": "This release was never active, so it cannot be restored.",
+  "invalid_answers": "Please answer every question.",
+  "consent_required": "Your consent is needed before a photo can be uploaded.",
+  "invalid_image_kind": "This photo type is not supported.",
+  "unsupported_image_type": "Please upload a JPEG or PNG photo.",
+  "image_too_large": "The photo is larger than 10 MB.",
+  "photo_rejected": "This photo cannot be used. Please take another one."
 }

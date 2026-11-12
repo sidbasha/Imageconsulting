@@ -13,6 +13,7 @@ import { saveChosenLanguage, tokenStore } from '../src/storage/secureStore';
 import { createFakeServer, PHASE1, PHASE2 } from '../testing/fakeServer';
 
 const keychain = jest.requireMock('react-native-keychain');
+const picker = jest.requireMock('react-native-image-picker') as { launchImageLibrary: jest.Mock; launchCamera: jest.Mock };
 
 // Capture the app's foreground/background listener so tests can bring the app "back to the foreground".
 const appStateListeners: ((state: string) => void)[] = [];
@@ -57,8 +58,10 @@ test('sign in shows only the services enabled in the active release', async () =
   expect(screen.queryByText('Find a stylist')).toBeNull();
   expect(screen.queryByText('Work with a stylist')).toBeNull();
   expect(screen.queryByText('Shop and offers')).toBeNull();
-  // Not built yet, so it says so and cannot be opened.
-  expect(screen.getByTestId('entry-faceShape')).toBeDisabled();
+  // Built features can be opened; ones that are not built say so and cannot.
+  expect(screen.getByTestId('entry-styleAssessment')).toBeEnabled();
+  expect(screen.getByTestId('entry-guides')).toBeDisabled();
+  expect(screen.getByLabelText('Style guides, In development')).toBeOnTheScreen();
 });
 
 test('a phase released on the server appears when the app returns to the foreground', async () => {
@@ -212,4 +215,150 @@ test('offline at launch offers a retry instead of signing the user out', async (
   server.state.offline = false;
   await user.press(screen.getByTestId('retry-start'));
   expect(await screen.findByText('Hello, Layla')).toBeOnTheScreen();
+});
+
+describe('assessments', () => {
+  test('answer every question, see the result, and find it again later', async () => {
+    const { api, user } = start();
+    await render(<App api={api} />);
+    await signIn(user);
+    await user.press(await screen.findByTestId('entry-styleAssessment'));
+
+    expect(await screen.findByText('Two questions.')).toBeOnTheScreen();
+    await user.press(screen.getByTestId('start'));
+    expect(screen.getByTestId('progress')).toHaveTextContent('Question 1 of 2');
+    // No way forward until the question is answered.
+    expect(screen.queryByTestId('next')).toBeNull();
+    await user.press(screen.getByTestId('option-curved'));
+    expect(screen.getByTestId('option-curved')).toBeSelected();
+    await user.press(screen.getByTestId('next'));
+
+    expect(screen.getByTestId('progress')).toHaveTextContent('Question 2 of 2');
+    await user.press(screen.getByTestId('previous'));
+    expect(screen.getByTestId('option-curved')).toBeSelected(); // earlier answers are kept
+    await user.press(screen.getByTestId('next'));
+    await user.press(screen.getByTestId('option-floral'));
+    await user.press(screen.getByText('See my result'));
+
+    expect(await screen.findByTestId('result-title')).toHaveTextContent('Romantic');
+    expect(screen.getByText('Choose dresses that define the waist.')).toBeOnTheScreen();
+    expect(screen.getByText('Based on your own answers. This is not an expert assessment.')).toBeOnTheScreen();
+    expect(screen.getByText('Florals')).toBeOnTheScreen();
+
+    // Leave and come back: the saved result is shown, not the questions.
+    await user.press(screen.getByTestId('back'));
+    await user.press(await screen.findByTestId('entry-styleAssessment'));
+    expect(await screen.findByTestId('result-title')).toHaveTextContent('Romantic');
+
+    await user.press(screen.getByTestId('retake'));
+    await user.press(await screen.findByTestId('start'));
+    await user.press(screen.getByTestId('option-straight'));
+    await user.press(screen.getByTestId('next'));
+    await user.press(screen.getByTestId('option-subtle'));
+    await user.press(screen.getByTestId('next'));
+    expect(await screen.findByTestId('result-title')).toHaveTextContent('Classic');
+  });
+
+  test('questions and results follow the language, right-to-left in Arabic', async () => {
+    const { api, user } = start();
+    await saveChosenLanguage('ar');
+    await render(<App api={api} />);
+    await signIn(user);
+    await user.press(await screen.findByTestId('entry-styleAssessment'));
+    await user.press(await screen.findByText('ابدئي'));
+    expect(screen.getByTestId('progress')).toHaveTextContent('السؤال 1 من 2');
+    expect(styleOf(screen.getByText('أي الخطوط تفضّلين؟'))).toMatchObject({ textAlign: 'right', writingDirection: 'rtl' });
+    await user.press(screen.getByTestId('option-curved'));
+    await user.press(screen.getByTestId('next'));
+    await user.press(screen.getByTestId('option-floral'));
+    await user.press(screen.getByTestId('next'));
+    expect(await screen.findByTestId('result-title')).toHaveTextContent('رومانسي');
+    expect(screen.getByText('اختاري الفساتين التي تحدّد الخصر.')).toBeOnTheScreen();
+  });
+
+  test('recommendations prompt for the missing assessment, then show advice', async () => {
+    const { api, user } = start();
+    await render(<App api={api} />);
+    await signIn(user);
+    await user.press(await screen.findByTestId('entry-outfits'));
+    expect(await screen.findByText('Complete an assessment to get your recommendations.')).toBeOnTheScreen();
+
+    await user.press(screen.getByTestId('take-style'));
+    await user.press(await screen.findByTestId('start'));
+    await user.press(screen.getByTestId('option-straight'));
+    await user.press(screen.getByTestId('next'));
+    await user.press(screen.getByTestId('option-subtle'));
+    await user.press(screen.getByTestId('next'));
+    await screen.findByTestId('result-title');
+    await user.press(screen.getByTestId('back'));
+
+    expect(await screen.findByText('Build around tailored blazers.')).toBeOnTheScreen();
+    expect(screen.getByText('Personal style assessment: Classic')).toBeOnTheScreen();
+    expect(screen.queryByTestId('take-style')).toBeNull();
+  });
+});
+
+describe('photos', () => {
+  const asset = { uri: 'file:///tmp/selfie.jpg', fileName: 'selfie.jpg', type: 'image/jpeg' };
+
+  async function openPhotos(user: ReturnType<typeof userEvent.setup>) {
+    await signIn(user);
+    await user.press(await screen.findByTestId('entry-photoAssessment'));
+    await screen.findByText('No photos yet.');
+  }
+
+  beforeEach(() => {
+    picker.launchImageLibrary.mockReset().mockResolvedValue({ assets: [asset] });
+    picker.launchCamera.mockReset().mockResolvedValue({ assets: [asset] });
+  });
+
+  test('nothing is picked or sent until the user gives consent', async () => {
+    const { api, server, user } = start();
+    await render(<App api={api} />);
+    await openPhotos(user);
+
+    await user.press(screen.getByTestId('choose'));
+    expect(await screen.findByText('Please agree before adding a photo.')).toBeOnTheScreen();
+    expect(picker.launchImageLibrary).not.toHaveBeenCalled();
+    expect(server.state.uploads).toHaveLength(0);
+
+    await user.press(screen.getByTestId('consent'));
+    expect(screen.getByTestId('consent')).toBeChecked();
+    await user.press(screen.getByTestId('kind-full_body'));
+    await user.press(screen.getByTestId('choose'));
+
+    expect(await screen.findByTestId('added')).toBeOnTheScreen();
+    expect(server.state.uploads).toHaveLength(1);
+    expect(server.state.uploads[0]).toMatchObject({ kind: 'full_body', consent: 'true' });
+    expect(await screen.findByText('1200 × 1600 · 2026-11-12')).toBeOnTheScreen();
+  });
+
+  test('a rejected photo explains what to fix, in the user language', async () => {
+    const { api, server, user } = start();
+    server.state.rejectPhotosWith = ['too_blurry', 'no_face'];
+    await render(<App api={api} />);
+    await openPhotos(user);
+    await user.press(screen.getByTestId('consent'));
+    await user.press(screen.getByTestId('take'));
+
+    expect(await screen.findByText('The photo is blurry. Hold the phone steady.')).toBeOnTheScreen();
+    expect(screen.getByText('No face was found. Face the camera directly.')).toBeOnTheScreen();
+    expect(picker.launchCamera).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('No photos yet.')).toBeOnTheScreen();
+  });
+
+  test('cancelling the picker uploads nothing; a photo can be deleted', async () => {
+    const { api, server, user } = start();
+    await render(<App api={api} />);
+    await openPhotos(user);
+    await user.press(screen.getByTestId('consent'));
+
+    picker.launchImageLibrary.mockResolvedValueOnce({ didCancel: true });
+    await user.press(screen.getByTestId('choose'));
+    expect(server.state.uploads).toHaveLength(0);
+
+    await user.press(screen.getByTestId('choose'));
+    await user.press(await screen.findByTestId('delete-photo-1'));
+    expect(await screen.findByText('No photos yet.')).toBeOnTheScreen();
+  });
 });

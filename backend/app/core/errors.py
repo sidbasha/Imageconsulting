@@ -18,14 +18,17 @@ class AppError(Exception):
 
 
 def pick_language(request: Request) -> str:
+    """Language for this response: what the client asks for in Accept-Language
+    (the app sends its current language on every request), otherwise the
+    language saved on the signed-in user's profile, otherwise the default."""
     settings = get_settings()
-    explicit = getattr(request.state, "language", None)
-    if explicit in settings.supported_languages:
-        return explicit
     for part in request.headers.get("accept-language", "").split(","):
         tag = part.split(";")[0].strip().lower()[:2]
         if tag in settings.supported_languages:
             return tag
+    saved = getattr(request.state, "language", None)
+    if saved in settings.supported_languages:
+        return saved
     return settings.default_language
 
 

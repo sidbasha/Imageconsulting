@@ -20,7 +20,8 @@ test('Arabic strings are actually Arabic (not copied English)', () => {
   const arabic = /[؀-ۿ]/;
   const untranslated = flatten(ar).filter(key => {
     const text = key.split('.').reduce((o: any, k) => o[k], ar) as string;
-    return !arabic.test(text) && key !== 'language.en';
+    const words = text.replace(/\{\{\w+\}\}/g, ''); // placeholders are not text
+    return /[A-Za-z]/.test(words) && !arabic.test(words) && key !== 'language.en';
   });
   expect(untranslated).toEqual([]);
 });

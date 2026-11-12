@@ -97,6 +97,18 @@ HEADERS = [
     ("Acceptance criteria", 56), ("Build status", 14), ("Testing status", 14),
 ]
 BUILD = ["Not started", "In progress", "Built", "Blocked"]
+# S.No -> (build status, testing status, note appended to the acceptance criteria)
+PROGRESS = {
+    4: ("Built", "Tests passing", "BUILT with draft content; image-based options await client images."),
+    5: ("Built", "Tests passing", "BUILT with draft content pending client review."),
+    6: ("Built", "Tests passing", "BUILT: consent, validation, quality gate, private storage, delete. Thresholds need tuning on real photos."),
+    7: ("In progress", "Tests passing", "PARTIAL: guided self-assessment only. Photo-based AI analysis not built (landmark model not yet available)."),
+    8: ("In progress", "Tests passing", "PARTIAL: questionnaire path only. Photo path not built."),
+    9: ("In progress", "Tests passing", "PARTIAL: indicative self-assessment only. Photo-based AI analysis not built."),
+    10: ("Built", "Tests passing", "BUILT as rule-based advice from assessment results; draft content."),
+    12: ("In progress", "Tests passing", "PARTIAL: hairstyle recommendations only. Preview on photo not built."),
+    13: ("Built", "Tests passing", "BUILT from self-assessed face shape; draft content."),
+}
 TEST = ["Not tested", "Tests passing", "Tests failing"]
 
 
@@ -143,8 +155,10 @@ def main(source: str) -> None:
             key, app_module, release = "(not a feature)", "", "Decision"
             depends = f"Affects rows {DECISION_AFFECTS[sno]}"
             mom, api, entities, screens, accept = "p5 Open items" if sno in (61, 64, 65) else "p3-p5", "", "", "", DECISION
+        built, tested, progress_note = PROGRESS.get(sno, ("Not started", "Not tested", ""))
+        accept = f"{accept} [{progress_note}]" if progress_note else accept
         values = [sno, f"Feature List v1.0, row {r}", module, name, scope, phase, basis, notes, mom, release, key,
-                  app_module, api, entities, screens, depends, accept, "Not started", "Not tested"]
+                  app_module, api, entities, screens, depends, accept, built, tested]
         for col, value in enumerate(values, 1):
             cell = ws.cell(r, col, value)
             cell.font, cell.border = font, border
@@ -180,7 +194,7 @@ def main(source: str) -> None:
              ["'Phase 1 / enhancement' and 'Phase 2 / enhancement|later' rows sit in that phase with their own switch."],
              ["Planned API, entities and screens are the design target, not a statement that they exist. Build status says what exists."],
              ["Build status and Testing status (columns R, S) are the only cells to update as work lands. Example: Built / Tests passing."],
-             ["Every one of the 52 feature keys already has a tested release switch (backend milestone 1); the features behind them are not built yet."],
+             ["Every one of the 52 feature keys has a tested release switch. Build status shows which features exist; bracketed notes in Acceptance criteria say what is partial."],
              ["Dependencies: only row 23 -> row 9 is stated in the Excel. The rest are engineering proposals (see catalog.py, basis column)."]]
     for r, row in enumerate(rows, 1):
         for c, value in enumerate(row, 1):

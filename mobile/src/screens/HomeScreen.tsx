@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { AppText, Button, ErrorBanner, Row, Screen } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
-import { visibleSections, type Entry } from '../navigation/registry';
+import { visibleSections, type Entry, type Target } from '../navigation/registry';
 import type { AppStackParams } from '../navigation/RootNavigator';
 import { colors, radius, spacing } from '../theme';
 import { errorMessage } from './errorMessage';
@@ -57,7 +57,7 @@ export function HomeScreen({ navigation }: NativeStackScreenProps<AppStackParams
               {t(`groups.${section.group}`)}
             </AppText>
             {section.entries.map(entry => (
-              <EntryCard key={entry.id} entry={entry} onOpen={screen => navigation.navigate(screen as never)} />
+              <EntryCard key={entry.id} entry={entry} onOpen={target => navigation.navigate(target.screen as any, target.params as any)} />
             ))}
           </View>
         ))}
@@ -66,9 +66,9 @@ export function HomeScreen({ navigation }: NativeStackScreenProps<AppStackParams
   );
 }
 
-function EntryCard({ entry, onOpen }: { entry: Entry; onOpen: (screen: string) => void }) {
+function EntryCard({ entry, onOpen }: { entry: Entry; onOpen: (target: Target) => void }) {
   const { t } = useTranslation();
-  const ready = !!entry.screen;
+  const ready = !!entry.target;
   const label = t(`entries.${entry.id}`);
   return (
     <Pressable
@@ -77,7 +77,7 @@ function EntryCard({ entry, onOpen }: { entry: Entry; onOpen: (screen: string) =
       accessibilityLabel={ready ? label : `${label}, ${t('common.inDevelopment')}`}
       accessibilityState={{ disabled: !ready }}
       disabled={!ready}
-      onPress={() => entry.screen && onOpen(entry.screen)}
+      onPress={() => entry.target && onOpen(entry.target)}
       style={styles.card}>
       <Row style={styles.cardRow}>
         <AppText style={styles.flex}>{label}</AppText>
