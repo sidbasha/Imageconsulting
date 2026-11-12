@@ -802,5 +802,29 @@
         "booking_slot_minutes": "مدة الجلسة الافتراضية (دقائق)"
       }
     }
+  },
+  "stylistHome": {
+    "kicker": "مساحة عملك",
+    "upcoming": "{{count}} جلسات قادمة",
+    "none": "لا توجد جلسات محجوزة بعد.",
+    "next": "القادم",
+    "links": {
+      "bookings": "الحجوزات والتقارير",
+      "services": "الخدمات والمواعيد",
+      "messages": "الرسائل",
+      "featured": "الظهور المميّز",
+      "membership": "العضوية",
+      "profile": "ملفي كمستشارة"
+    }
+  },
+  "roles": {
+    "customer": "عميلة",
+    "stylist": "مستشارة",
+    "super_admin": "المشرف العام",
+    "admin": "مسؤول",
+    "support_manager": "مدير الدعم",
+    "stylist_manager": "مدير المستشارات",
+    "content_manager": "مدير المحتوى",
+    "finance_manager": "مدير المالية"
   }
 }

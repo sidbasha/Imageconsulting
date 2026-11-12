@@ -410,9 +410,12 @@ test('the Admin tab appears only for staff, and approvals work from inside the a
     'POST /admin/eligibility/u9': body => { decided = body; queue = []; return [200, {}]; },
   };
   await render(<App api={api} />);
-  await signIn(user);
+  await user.type(await screen.findByTestId('email'), 'layla@example.com');
+  await user.type(screen.getByTestId('password'), 'correct-horse-battery');
+  await user.press(screen.getByTestId('submit'));
+  // Staff land in the Admin workspace.
+  expect(await screen.findByTestId('admin-home')).toBeOnTheScreen();
   expect(screen.getByTestId('tab-Admin')).toBeOnTheScreen();
-  await user.press(screen.getByTestId('tab-Admin'));
   expect(await screen.findByTestId('admin-approvals')).toBeOnTheScreen();
   expect(screen.getByTestId('admin-orders')).toBeOnTheScreen();
   expect(screen.queryByTestId('admin-settings')).toBeNull(); // not this role's permission
@@ -427,4 +430,59 @@ test('customers never see the Admin tab', async () => {
   await render(<App api={api} />);
   await signIn(user);
   expect(screen.queryByTestId('tab-Admin')).toBeNull();
+});
+
+describe('each role sees only its own app', () => {
+  test('staff get the Admin workspace and no customer tabs or services', async () => {
+    const { api, server, user } = start([...PHASE1, ...PHASE2]);
+    Object.assign(server.state.account('layla@example.com'), { role: 'support_manager', permissions: ['users.review', 'moderation.manage'] });
+    server.state.routes = {
+      'GET /admin/eligibility': () => [200, []], 'GET /admin/identity/pending': () => [200, []], 'GET /admin/moderation/violations': () => [200, []],
+    };
+    await render(<App api={api} />);
+    await user.type(await screen.findByTestId('email'), 'layla@example.com');
+    await user.type(screen.getByTestId('password'), 'correct-horse-battery');
+    await user.press(screen.getByTestId('submit'));
+    expect(await screen.findByTestId('admin-home')).toBeOnTheScreen();
+    expect(screen.getByTestId('admin-approvals')).toBeOnTheScreen();
+    expect(screen.getByTestId('admin-moderation')).toBeOnTheScreen();
+    expect(screen.queryByTestId('admin-orders')).toBeNull();
+    for (const tab of ['Today', 'Style', 'Experts', 'Shop']) {
+      expect(screen.queryByTestId(`tab-${tab}`)).toBeNull();
+    }
+    await user.press(screen.getByTestId('open-menu'));
+    expect(await screen.findByTestId('menu-approvals')).toBeOnTheScreen();
+    expect(screen.queryByTestId('menu-onboardingQuiz')).toBeNull();
+    expect(screen.queryByTestId('menu-becomeStylist')).toBeNull();
+  });
+
+  test('stylists get their practice, not customer shopping and assessments', async () => {
+    const { api, server, user } = start([...PHASE1, ...PHASE2, 'phase2.consultant_subscriptions', 'phase2.stylist_onboarding']);
+    Object.assign(server.state.account('layla@example.com'), { role: 'stylist', permissions: ['stylist.practice'] });
+    server.state.routes = { 'GET /stylist/bookings': () => [200, []] };
+    await render(<App api={api} />);
+    await user.type(await screen.findByTestId('email'), 'layla@example.com');
+    await user.type(screen.getByTestId('password'), 'correct-horse-battery');
+    await user.press(screen.getByTestId('submit'));
+    expect(await screen.findByTestId('stylist-home')).toBeOnTheScreen();
+    expect(screen.getByTestId('stylist-bookings')).toBeOnTheScreen();
+    expect(screen.getByTestId('stylist-services')).toBeOnTheScreen();
+    expect(screen.queryByTestId('tab-Style')).toBeNull();
+    expect(screen.queryByTestId('tab-Admin')).toBeNull();
+    await user.press(screen.getByTestId('open-menu'));
+    expect(await screen.findByTestId('menu-services')).toBeOnTheScreen();
+    expect(screen.queryByTestId('menu-findStylist')).toBeNull();
+    expect(screen.queryByTestId('menu-becomeStylist')).toBeNull();
+  });
+
+  test('customers keep their services and never see staff or stylist tools', async () => {
+    const { api, user } = start([...PHASE1, ...PHASE2, 'phase2.stylist_onboarding']);
+    await render(<App api={api} />);
+    await signIn(user);
+    expect(screen.getByTestId('tab-Style')).toBeOnTheScreen();
+    await user.press(screen.getByTestId('open-menu'));
+    expect(await screen.findByTestId('menu-becomeStylist')).toBeOnTheScreen();
+    expect(screen.queryByTestId('menu-approvals')).toBeNull();
+    expect(screen.queryByTestId('menu-services')).toBeNull();
+  });
 });

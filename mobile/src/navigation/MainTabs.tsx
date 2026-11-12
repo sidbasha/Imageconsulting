@@ -13,7 +13,8 @@ import { useDirection } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
 import { AccountScreen } from '../screens/AccountScreen';
 import { AdminHomeScreen } from '../screens/admin/AdminHomeScreen';
-import { isStaff } from '../screens/admin/common';
+import { StylistHomeScreen } from '../screens/StylistHomeScreen';
+import { audienceOf } from './audience';
 import { HomeScreen } from '../screens/HomeScreen';
 import { HubScreen } from '../screens/HubScreen';
 import { colors, gradients, radius, shadows, spacing } from '../theme';
@@ -37,15 +38,32 @@ const renderTabBar = (props: BottomTabBarProps) => <FloatingTabBar {...props} />
 
 export function MainTabs() {
   const { features, user } = useApp();
+  const audience = audienceOf(user);
   const groups = new Set(visibleSections(features ?? []).map(s => s.group));
   const has = (tab: keyof typeof TAB_GROUPS) => TAB_GROUPS[tab].some(g => groups.has(g));
+  if (audience === 'staff') {
+    // Staff work in the Admin workspace; customer screens are not theirs.
+    return (
+      <Tab.Navigator screenOptions={{ headerShown: false }} tabBar={renderTabBar}>
+        <Tab.Screen name="Admin" component={AdminHomeScreen} />
+        <Tab.Screen name="Me" component={AccountScreen} />
+      </Tab.Navigator>
+    );
+  }
+  if (audience === 'stylist') {
+    return (
+      <Tab.Navigator screenOptions={{ headerShown: false }} tabBar={renderTabBar}>
+        <Tab.Screen name="Today" component={StylistHomeScreen} />
+        <Tab.Screen name="Me" component={AccountScreen} />
+      </Tab.Navigator>
+    );
+  }
   return (
     <Tab.Navigator screenOptions={{ headerShown: false }} tabBar={renderTabBar}>
       <Tab.Screen name="Today" component={HomeScreen} />
       {has('Style') ? <Tab.Screen name="Style" component={StyleHub} /> : null}
       {has('Experts') ? <Tab.Screen name="Experts" component={ExpertsHub} /> : null}
       {has('Shop') ? <Tab.Screen name="Shop" component={ShopHub} /> : null}
-      {isStaff(user?.permissions) ? <Tab.Screen name="Admin" component={AdminHomeScreen} /> : null}
       <Tab.Screen name="Me" component={AccountScreen} />
     </Tab.Navigator>
   );

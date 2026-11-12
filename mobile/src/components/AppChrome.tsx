@@ -9,10 +9,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { useApp } from '../contexts/AppContext';
-import { visibleSections, type Target } from '../navigation/registry';
+import { audienceOf, STYLIST_LINKS } from '../navigation/audience';
+import { visibleSections } from '../navigation/registry';
+import { ADMIN_SECTIONS } from '../screens/admin/common';
 import { colors, fonts, gradients, radius, shadows, spacing } from '../theme';
 import { AppText, Avatar, LanguageSwitch, Row, useDirection } from './ui';
-import { EntryIcon } from './Icon';
+import { EntryIcon, Icon, type IconName } from './Icon';
 
 export function TopBar({ onMenu }: { onMenu: () => void }) {
   const { t } = useTranslation();
@@ -54,10 +56,26 @@ export function Menu({ visible, onClose }: { visible: boolean; onClose: () => vo
   }, [slide, visible]);
 
   const offset = slide.interpolate({ inputRange: [0, 1], outputRange: [rtl ? width : -width, 0] });
-  const open = (target: Target) => {
+  const open = (target: { screen: string; params?: object }) => {
     onClose();
     navigation.navigate(target.screen, target.params);
   };
+  // What this person may open: customer services, a stylist's tools, or the staff areas of her role.
+  const audience = audienceOf(user);
+  const on = new Set(features ?? []);
+  type Item = { id: string; label: string; icon: React.ReactNode; target: { screen: string; params?: object } };
+  const menuGroups: { title: string; items: Item[] }[] =
+    audience === 'staff'
+      ? [{ title: t('tabs.Admin'), items: ADMIN_SECTIONS.filter(a => (user?.permissions ?? []).includes(a.permission)).map(a => ({
+          id: a.key, label: t(`admin.sections.${a.key}`), icon: <Icon name={a.icon as IconName} size={20} color={colors.primary} />, target: { screen: a.screen } })) }]
+      : audience === 'stylist'
+        ? [{ title: t('stylistHome.kicker'), items: STYLIST_LINKS.filter(l => on.has(l.feature)).map(l => ({
+            id: l.key, label: t(`stylistHome.links.${l.key}`), icon: <Icon name={l.icon} size={20} color={colors.primary} />, target: { screen: l.screen, params: l.params } })) }]
+        : visibleSections(features ?? []).map(section => ({
+            title: t(`groups.${section.group}`),
+            items: section.entries.filter(e => e.target).map(e => ({
+              id: e.id, label: t(`entries.${e.id}`), icon: <EntryIcon id={e.id} size={20} color={colors.primary} />, target: e.target! })),
+          }));
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
@@ -72,16 +90,15 @@ export function Menu({ visible, onClose }: { visible: boolean; onClose: () => vo
           </View>
         </View>
         <ScrollView contentContainerStyle={styles.panelList}>
-          {visibleSections(features ?? []).map(section => (
-            <View key={section.group} style={styles.panelGroup}>
-              <Text style={styles.panelGroupTitle}>{t(`groups.${section.group}`)}</Text>
-              {section.entries.map(entry => (
-                <Pressable key={entry.id} accessibilityRole="button" testID={`menu-${entry.id}`}
-                  onPress={() => entry.target && open(entry.target)}
+          {menuGroups.map(group => (
+            <View key={group.title} style={styles.panelGroup}>
+              <Text style={styles.panelGroupTitle}>{group.title}</Text>
+              {group.items.map(item => (
+                <Pressable key={item.id} accessibilityRole="button" testID={`menu-${item.id}`} onPress={() => open(item.target)}
                   style={({ pressed }) => [styles.panelItem, pressed && styles.panelItemPressed]}>
                   <Row style={styles.panelItemRow}>
-                    <View style={styles.panelIcon}><EntryIcon id={entry.id} size={20} color={colors.primary} /></View>
-                    <AppText style={styles.flex}>{t(`entries.${entry.id}`)}</AppText>
+                    <View style={styles.panelIcon}>{item.icon}</View>
+                    <AppText style={styles.flex}>{item.label}</AppText>
                   </Row>
                 </Pressable>
               ))}

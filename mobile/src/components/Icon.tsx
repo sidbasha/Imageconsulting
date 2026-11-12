@@ -18,6 +18,7 @@ const ICONS = {
   'user-search': UserSearch, book: BookOpen, file: FileText, brush: Brush,
   shield: ShieldCheck, 'id-card': IdCard, badge: BadgeCheck, receipt: Receipt, flag: Flag, package: Package,
   megaphone: Megaphone, sliders: SlidersHorizontal, images: Images, link: Link, gem: Gem, crown: Crown, ticket: Ticket,
+  calendar: CalendarHeart, mail: Mail, scissors: Scissors,
 };
 export type IconName = keyof typeof ICONS;
 

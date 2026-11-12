@@ -7,6 +7,7 @@ import { Menu, TopBar } from '../components/AppChrome';
 import { EntryIcon, Flourish, Icon } from '../components/Icon';
 import { AppText, Avatar, LanguageSwitch, Row, Screen, useDirection } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
+import { audienceOf, STYLIST_LINKS } from '../navigation/audience';
 import { visibleSections } from '../navigation/registry';
 import { colors, fonts, gradients, radius, shadows, spacing } from '../theme';
 
@@ -17,10 +18,16 @@ export function AccountScreen() {
   const { rtl } = useDirection();
   const navigation = useNavigation<any>();
   const [menu, setMenu] = useState(false);
-  const entries = visibleSections(features ?? []).find(s => s.group === 'account')?.entries ?? [];
+  const audience = audienceOf(user);
+  const on = new Set(features ?? []);
+  const entries = audience === 'customer' ? visibleSections(features ?? []).find(s => s.group === 'account')?.entries ?? [] : [];
+  const stylistItems = audience === 'stylist' ? STYLIST_LINKS.filter(l => ['membership', 'profile'].includes(l.key) && on.has(l.feature)) : [];
   const items = [
-    ...entries.map(e => ({ id: e.id, label: t(`entries.${e.id}`), go: () => e.target && navigation.navigate(e.target.screen, e.target.params) })),
-    { id: 'settings', label: t('home.settings'), go: () => navigation.navigate('Settings') },
+    ...entries.map(e => ({ id: e.id, label: t(`entries.${e.id}`), icon: <EntryIcon id={e.id} size={19} color={colors.primary} />,
+      go: () => e.target && navigation.navigate(e.target.screen, e.target.params) })),
+    ...stylistItems.map(l => ({ id: l.key, label: t(`stylistHome.links.${l.key}`), icon: <Icon name={l.icon} size={19} color={colors.primary} />,
+      go: () => navigation.navigate(l.screen, l.params) })),
+    { id: 'settings', label: t('home.settings'), icon: <Icon name="settings" size={19} color={colors.primary} />, go: () => navigation.navigate('Settings') },
   ];
   return (
     <Screen testID="account">
@@ -31,15 +38,14 @@ export function AccountScreen() {
           <Avatar name={user?.full_name ?? '?'} size={76} />
           <Text style={styles.name}>{user?.full_name}</Text>
           <Text style={styles.email}>{user?.email}</Text>
+          <View style={styles.rolePill}><Text style={styles.roleText}>{t(`roles.${user?.role ?? 'customer'}`, { defaultValue: user?.role })}</Text></View>
         </View>
         <View style={[styles.list, { boxShadow: shadows.soft }]}>
           {items.map((item, i) => (
             <Pressable key={item.id} accessibilityRole="button" testID={`me-${item.id}`} onPress={item.go}
               style={({ pressed }) => [styles.item, i > 0 && styles.itemBorder, pressed && styles.pressed]}>
               <Row style={styles.row}>
-                <View style={styles.bubble}>
-                  {item.id === 'settings' ? <Icon name="settings" size={19} color={colors.primary} /> : <EntryIcon id={item.id} size={19} color={colors.primary} />}
-                </View>
+                <View style={styles.bubble}>{item.icon}</View>
                 <AppText style={styles.flex}>{item.label}</AppText>
                 <Text style={styles.chev}>{rtl ? '‹' : '›'}</Text>
               </Row>
@@ -63,6 +69,8 @@ const styles = StyleSheet.create({
   orb: { position: 'absolute', width: 240, height: 240, borderRadius: 120, backgroundColor: 'rgba(255,255,255,0.12)', top: -110, left: -60 },
   name: { color: colors.onPrimary, fontFamily: fonts.display, fontSize: 26, fontWeight: '700', marginTop: spacing.sm },
   email: { color: 'rgba(255,255,255,0.85)' },
+  rolePill: { marginTop: 6, backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4 },
+  roleText: { color: colors.onPrimary, fontWeight: '700', fontSize: 12, letterSpacing: 0.6 },
   list: { backgroundColor: colors.surface, borderRadius: radius.lg, overflow: 'hidden' },
   item: { paddingHorizontal: spacing.md, paddingVertical: 14 },
   itemBorder: { borderTopWidth: 1, borderTopColor: colors.border },

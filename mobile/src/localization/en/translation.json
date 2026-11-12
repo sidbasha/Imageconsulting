@@ -802,5 +802,29 @@
         "booking_slot_minutes": "Default session length (minutes)"
       }
     }
+  },
+  "stylistHome": {
+    "kicker": "Your practice",
+    "upcoming": "{{count}} sessions coming up",
+    "none": "No sessions booked yet.",
+    "next": "Coming up",
+    "links": {
+      "bookings": "Bookings and reports",
+      "services": "Services and availability",
+      "messages": "Messages",
+      "featured": "Be featured",
+      "membership": "Membership",
+      "profile": "My stylist profile"
+    }
+  },
+  "roles": {
+    "customer": "Client",
+    "stylist": "Stylist",
+    "super_admin": "Super Admin",
+    "admin": "Admin",
+    "support_manager": "Support manager",
+    "stylist_manager": "Stylist manager",
+    "content_manager": "Content manager",
+    "finance_manager": "Finance manager"
   }
 }
